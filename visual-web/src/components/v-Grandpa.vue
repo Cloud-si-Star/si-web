@@ -1,5 +1,5 @@
 <template>
-  <div ref="chartRef" :style="{ width, height }"></div>
+  <div class="backG" ref="chartRef" :style="{ width, height }"></div>
 </template>
 
 <script setup lang="ts">
@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   width: '100%',
   height: '100%',
-  theme: undefined,
+  theme: 'westeros',
 })
 
 // 注入 echarts，类型自动推断为 typeof import('echarts')
@@ -51,3 +51,10 @@ onBeforeUnmount(() => {
 
 defineExpose({ resizeChart, getInstance: () => chartInstance.value })
 </script>
+
+<style lang="scss" scoped>
+.backG{
+  background: rgba(114,125,216, 0.15);
+  border-radius: 8px;
+}
+</style>

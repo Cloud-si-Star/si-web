@@ -1,6 +1,6 @@
 import * as echarts from 'echarts'
 // granda模拟数据
-export const granda = [
+const granda = [
   {
     name: 'Grandpa',
     children: [
@@ -98,7 +98,32 @@ export const granda = [
       }
     ]
   }
-];
+]
+
+export const grdopt={
+  backgroundColor:"rgba(59, 87, 141, 0.15)",
+  graphic:[
+    {
+      type: 'rect',
+      left: 20,    // 距离容器左边
+      top: 20,     // 距离容器上边
+      right: 20,   // 距离容器右边
+      bottom: 20,  // 距离容器下边
+      r: 8,        // 圆角
+      fill: "rgba(255,255,255,0.1)", //矩形背景颜色
+      z: -10       //放在所有图形底层，不能盖住图表
+    }
+  ],
+  series:{
+    type:'sunburst',
+    data:granda,
+    radius:[0,'90%'],
+    label:{
+        rotate:'radial'
+    }
+  }
+}
+
 
 export const funnel = {
   title: {
@@ -590,6 +615,7 @@ var lineStyle = {
   width: 1,
   opacity: 0.5
 };
+
 export const  parallel= {
   backgroundColor: '#333',
   legend: {

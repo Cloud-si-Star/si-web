@@ -1,9 +1,7 @@
 <template>
   <div class="layout-wrap">
     <!-- 左侧菜单栏 -->
-    <aside class="sidebar">
-      <div class="menu-item" v-for="value in path" :key="value.path_id" @click="pushRoute(value.path)">{{ value.value }}</div>
-    </aside>
+    <vMenu class="sidebar"></vMenu>
 
     <!-- 右侧：子页面渲染位置！！子路由全部渲染在这里 -->
     <main class="main-content">
@@ -14,6 +12,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import vMenu from './v-menu.vue'
 
 interface MenuItem{
     path_id:number
@@ -52,20 +51,7 @@ function pushRoute(path_route:string){
 .layout-wrap {
   display: flex;
   height: 100%;
-}
-
-.sidebar {
-  width: 220px;
-  background: #304156;
-  color: #fff;
-  padding-top: 20px;
-  .menu-item {
-    padding:12px 24px;
-    cursor: pointer;
-    &:hover {
-      background: #263445;
-    }
-  }
+  box-sizing: border-box;
 }
 
 .main-content {
