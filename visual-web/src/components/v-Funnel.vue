@@ -1,5 +1,5 @@
 <template>
-    <div ref="chartRef" :style="{width,height}">
+    <div ref="chartRef" class="common" :style="{width,height}">
 
     </div>
 </template>
@@ -27,6 +27,11 @@ const chartRef=ref<HTMLElement>()!
 
 const chartInstance = shallowRef<ECharts>()
 
+const currentSpeed =ref<Number>(70)
+
+let timer: ReturnType<typeof setInterval> | null = null
+
+
 const initChart=()=>{
     
     if(!chartRef.value) return
@@ -42,12 +47,42 @@ watch(
     {deep:true}
 )
 
+
+// 定时修改数值
+function startAnimate() {
+   timer = setInterval(() => {
+    // 模拟波动，随机在 40~80之间变化
+    currentSpeed.value = Math.floor(Math.random() * 40) + 40
+    // ✅ 更新series的数据
+    if(!props.option.series) return
+    props.option.series[0].data=[
+        {
+            value: currentSpeed.value,
+            detail: {
+                fontSize: 16
+            }
+        }
+    ]
+
+  }, 6000)
+}
+
+function stopAnimate() {
+  if (timer) {
+    clearInterval(timer)
+    timer = null
+  }
+}
+
+
 onMounted(()=>{
     initChart()
+    startAnimate()
     window.addEventListener('resize',resizeChart)
 })
 
 onBeforeUnmount(()=>{
+    stopAnimate()
     window.removeEventListener('resize',resizeChart)
     chartInstance.value?.dispose()
     chartInstance.value=undefined
@@ -57,4 +92,12 @@ defineExpose({
     resizeChart,
     getInstance:()=>chartInstance.value
 })
+
 </script>
+
+<style lang="scss" scoped>
+.common{
+    background: rgba(77, 95, 255, 0.12);
+    border-radius: 8px;
+}
+</style>

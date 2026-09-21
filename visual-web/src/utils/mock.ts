@@ -100,9 +100,9 @@ const granda = [
   }
 ]
 
-export const grdopt={
-  backgroundColor:"rgba(59, 87, 141, 0.15)",
-  graphic:[
+export const grdopt = {
+  backgroundColor: "rgba(59, 87, 141, 0.15)",
+  graphic: [
     {
       type: 'rect',
       left: 20,    // 距离容器左边
@@ -114,12 +114,12 @@ export const grdopt={
       z: -10       //放在所有图形底层，不能盖住图表
     }
   ],
-  series:{
-    type:'sunburst',
-    data:granda,
-    radius:[0,'90%'],
-    label:{
-        rotate:'radial'
+  series: {
+    type: 'sunburst',
+    data: granda,
+    radius: [0, '90%'],
+    label: {
+      rotate: 'radial'
     }
   }
 }
@@ -223,7 +223,7 @@ for (let i = 0; i < 20; i++) {
   lineData.push(d + b);
 }
 
-export const pictor={
+export const pictor = {
   backgroundColor: '#0f375f',
   tooltip: {
     trigger: 'axis',
@@ -234,14 +234,14 @@ export const pictor={
   legend: {
     data: ['line', 'bar'],
     textStyle: {
-      color: '#ccc'
+      color: '#FFF'
     }
   },
   xAxis: {
     data: category,
     axisLine: {
       lineStyle: {
-        color: '#ccc'
+        color: '#FFF'
       }
     }
   },
@@ -249,7 +249,7 @@ export const pictor={
     splitLine: { show: false },
     axisLine: {
       lineStyle: {
-        color: '#ccc'
+        color: '#FFF'
       }
     }
   },
@@ -616,8 +616,15 @@ var lineStyle = {
   opacity: 0.5
 };
 
-export const  parallel= {
-  backgroundColor: '#333',
+export const parallel = {
+  color: [
+    "#516b91",
+    "#59c4e6",
+    "#edafda",
+    "#93b7e3",
+    "#a5e7f0",
+    "#cbb0e3"
+  ],
   legend: {
     bottom: 30,
     data: ['Beijing', 'Shanghai', 'Guangzhou'],
@@ -629,7 +636,11 @@ export const  parallel= {
   },
   tooltip: {
     padding: 10,
-    backgroundColor: '#222',
+    backgroundColor: 'rgba(112, 98, 235,0.15)',
+    textStyle: {
+      color: '#FFF'
+    },
+
     borderColor: '#777',
     borderWidth: 1
   },
@@ -659,14 +670,26 @@ export const  parallel= {
     min: 0,
     max: 150,
     dimension: 2,
+    textStyle: {
+      color: '#EEE', // 修改字体颜色，改成白色
+      fontSize: 16
+    },
     inRange: {
-      color: ['#d94e5d', '#eac736', '#50a3ba'].reverse()
+      color: [
+        "#516b91",
+        "#59c4e6",
+        "#edafda",
+        "#93b7e3",
+        "#a5e7f0",
+        "#cbb0e3"
+      ]
+      // color: ['#d94e5d', '#eac736', '#50a3ba'].reverse()
       // colorAlpha: [0, 1]
     }
   },
   parallel: {
-    left: '5%',
-    right: '18%',
+    left: '10%',
+    right: '12%',
     bottom: 100,
     parallelAxisDefault: {
       type: 'value',

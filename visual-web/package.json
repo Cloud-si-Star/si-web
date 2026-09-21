@@ -16,6 +16,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@dataview/datav-vue3": "^0.0.0-test.1672506674342",
     "axios": "^1.20.0",
     "echarts": "^6.1.0",
     "element-plus": "^2.14.5",

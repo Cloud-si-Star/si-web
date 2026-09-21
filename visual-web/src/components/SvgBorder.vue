@@ -24,9 +24,9 @@ const props = withDefaults(defineProps<Props>(), {
   color: '#0891b2',
   lightColor: '#00e5ff',
   strokeWidth: 1.5,
-  radius: 10,
+  radius: 5,
   duration: 3,
-  title: '',
+  title: 'rangw see you',
   titlePosition: 'top-left',
   animated: true,
 })
@@ -153,7 +153,7 @@ defineExpose({
   box-sizing: border-box;
 
   // 内容与边框留点间距
-  padding: 12px;
+  padding: 5px;
 
   // SVG 层
   &__svg {

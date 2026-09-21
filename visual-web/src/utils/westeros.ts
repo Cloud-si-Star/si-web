@@ -390,8 +390,8 @@ const westerosTheme:EChartsOption = {
         "right": 30,
         "top": 40,
         "bottom": 30,
-        "show": true, // 必须开启grid显示，背景色才生效
-        "backgroundColor": 'rgba(231, 28, 177, 0.5)', // 半透明，修改第4位透明度0~1
+        "show": false, // 必须开启grid显示，背景色才生效
+        "backgroundColor": 'rgba(65, 222, 227, 0.15)', // 半透明，修改第4位透明度0~1
         "borderWidth":0
     },
     /*

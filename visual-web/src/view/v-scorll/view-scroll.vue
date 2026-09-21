@@ -1,153 +1,139 @@
 <template>
-  <div class="page">
-    <div class="left-wrap">
-      <!-- 夹点按钮：像 Dock / 垃圾桶 -->
-      <button class="pin-btn" @click="startMinimize" ref="btnRef">
-        <span class="pin-icon"></span>
-      </button>
-
-      <!-- 要被最小化的 div -->
-      <div
-        ref="targetRef"
-        class="target-box"
-        :class="{ minimizing: isMinimizing }"
-      >
-        <div class="content">帕子内容</div>
+  <div 
+    class="rank-container"
+    @mouseenter="pauseTask"
+    @mouseleave="startTask"
+  >
+    <div class="rank-wrap" :style="{transform: `translateY(-${offset}px)`}">
+      <div class="rank-list">
+        <div class="rank-item" v-for="item in list" :key="item.id">
+          <span class="rank-no">No.{{item.rank}}</span>
+          <span class="rank-name">{{item.name}}</span>
+          <div class="bar-bg">
+            <div class="bar-fill" :style="{width: (item.value / maxVal *100)+'%'}"></div>
+          </div>
+          <span class="rank-num">{{item.value}}</span>
+        </div>
       </div>
-    </div>
-
-    <div class="right-box">
-      右侧自动占据空间
+      <div class="rank-list">
+        <div class="rank-item" v-for="item in list" :key="item.id + 'copy'">
+          <span class="rank-no">No.{{item.rank}}</span>
+          <span class="rank-name">{{item.name}}</span>
+          <div class="bar-bg">
+            <div class="bar-fill" :style="{width: (item.value / maxVal *100)+'%'}"></div>
+          </div>
+          <span class="rank-num">{{item.value}}</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import {ref, computed, onMounted, onUnmounted, watch} from 'vue'
+interface RankItem {
+  id: number
+  rank: number
+  name: string
+  value: number
+}
+const list = ref<RankItem[]>([
+  {id:1, rank:5, name:'周口',value:55},
+  {id:2, rank:6, name:'信阳',value:45},
+  {id:3, rank:7, name:'漯河',value:29},
+  {id:4, rank:1, name:'南阳',value:120},
+  {id:5, rank:2, name:'新乡',value:80},
+])
+const maxVal = computed(()=> Math.max(...list.value.map(i=>i.value)))
 
-const targetRef = ref<HTMLDivElement | null>(null)
+const offset = ref(0)
+const itemHeight = 44
+const totalHeight = computed(()=> list.value.length * itemHeight)
 
-const isMinimizing =ref<boolean>(false)
+let rafId: number | null = null
+let isRunning = ref(false)
 
-function startMinimize(){
-    isMinimizing.value=!isMinimizing.value
+// 【任务：开始滚动】
+const startTask = () => {
+  if(isRunning.value) return
+  isRunning.value = true
+  function animate() {
+    offset.value += 0.6
+    if(offset.value >= totalHeight.value) {
+      offset.value = 0
+    }
+    rafId = requestAnimationFrame(animate)
+  }
+  rafId = requestAnimationFrame(animate)
+}
+// 【任务：暂停滚动】
+const pauseTask = () => {
+  isRunning.value = false
+  if(rafId) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+  }
 }
 
+// 监听数据变化：数据刷新 → 重置滚动任务
+watch(list, ()=>{
+  offset.value = 0
+  pauseTask()
+  startTask()
+}, {deep:true})
 
-
+onMounted(()=>{
+  startTask()
+  // 页面切tab，自动暂停
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden) pauseTask()
+    else startTask()
+  })
+})
+onUnmounted(()=>{
+  pauseTask() // 销毁任务，释放资源
+})
 </script>
 
-<style scoped lang="scss">
-.page {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  width: 100%;
-  height: 420px;
-  background: #f5f7fa;
-  padding: 24px;
-  box-sizing: border-box;
+<style scoped>
+.rank-container{
+  width:100%;
+  height:320px;
+  overflow:hidden;
+  background:#222833;
+  padding:16px;
+  border-radius:6px;
 }
-
-.left-wrap {
-  position: relative;
-  width: 320px;
-  height: 100%;
-
-  /* 左侧宽度平滑收缩 */
-  transition: width 0.6s cubic-bezier(0.65, 0, 0.35, 1);
-  flex-shrink: 0;
+.rank-wrap{
+  width:100%;
 }
-
-/* 夹点按钮：模拟被吸入的目标点 */
-.pin-btn {
-  position: absolute;
-  top: -14px;
-  left: -14px;
-  z-index: 30;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  border: none;
-  background: #409eff;
-  cursor: pointer;
-  box-shadow: 0 10px 24px rgba(64, 158, 255, 0.45);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.rank-item{
+  height:44px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color:#fff;
 }
-
-.pin-icon {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: inset 0 0 0 3px #409eff;
+.rank-no{
+  color:#40b8ff;
+  width:60px;
 }
-
-/* 被最小化的 div */
-.target-box {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(145deg, #ffe58f, #ffd54f);
-  border-radius: 12px;
-  border-top-left-radius: 0px;
-  
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* 动画原点在左上角按钮附近 */
-  transform-origin: top left;
-
-  transition:
-    transform 0.5s cubic-bezier(0.5, 0, 0.2, 1.2),
-    opacity 0.45s ease-in,
-    border-radius 0.4s,
-    box-shadow 0.4s;
+.rank-name{
+  width:60px;
 }
-
-.content {
-  color: #5c4a12;
-  font-size: 16px;
-  font-weight: 500;
+.bar-bg{
+  flex:1;
+  height:5px;
+  background:rgba(64,224,208,0.15);
+  border-radius:3px;
 }
-
-/* 关键：模拟 macOS 最小化的吸入动画 */
-.target-box.minimizing {
-  /* 向夹点方向大幅缩小，而不是平移飞走 */
-  transform:
-    translate(-6%, -6%)
-    scale(0.12);
-
-  opacity: 0;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  pointer-events: none;
+.bar-fill{
+  height:100%;
+  border-radius:3px;
+  background: linear-gradient(90deg, #40e0d0, #36c9ff);
 }
-
-/* 左侧容器宽度收窄，右侧自动补位 */
-.left-wrap:has(.minimizing) {
-  width: 0;
-}
-
-/* 右侧 div 平滑扩张 */
-.right-box {
-  flex: 1;
-  height: 100%;
-  background: linear-gradient(145deg, #95de64, #67c243);
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #2b4d14;
-  font-size: 16px;
-  font-weight: 500;
-
-  transition: flex 0.6s cubic-bezier(0.65, 0, 0.35, 1);
+.rank-num{
+  width:40px;
+  text-align:right;
 }
 </style>
