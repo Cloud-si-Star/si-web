@@ -1,6 +1,6 @@
-import type {EChartsOption} from 'echarts'
+import type { EChartsOption } from 'echarts'
 
-const westerosTheme:EChartsOption = {
+const westerosTheme: EChartsOption = {
     "color": [
         "#516b91",
         "#59c4e6",
@@ -392,7 +392,7 @@ const westerosTheme:EChartsOption = {
         "bottom": 30,
         "show": false, // 必须开启grid显示，背景色才生效
         "backgroundColor": 'rgba(65, 222, 227, 0.15)', // 半透明，修改第4位透明度0~1
-        "borderWidth":0
+        "borderWidth": 0
     },
     /*
     "grid": {

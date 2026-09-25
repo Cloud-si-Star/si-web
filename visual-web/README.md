@@ -52,3 +52,70 @@ npm run test:unit
 ```sh
 npm run lint
 ```
+
+## 调用百度智能云模型所遇问题
+1、搭建后端服务，调用ernie-4.5-turbo-32k模型
+
+2、调试接口路径，开始路径不正确，参数报错，根据提示解决
+
+3、重点问题：代码里
+
+```ts
+const response = await chatToApi.openAiDoor({ messages: messages.value })
+
+if(response.ok) throw new Error(`HTTP ${response.status}`)
+
+const reader = response.body!.getReader()
+
+```
+
+openAiDoor之前我写的时候用的是axios封装接口，到时一直拿不到原生body:ReadableStream
+一直报错 卡在这里
+
+
+
+### 解决方案
+
+fetch封装接口openAiDoor以及配置vite.config,ts
+
+```ts
+proxy.on('proxyReq', (proxyReq, req) => {
+// 如果是 SSE 请求，告诉上游服务器不要缓冲
+  if (req.headers.accept?.includes('text/event-stream')) {
+    proxyReq.setHeader('Cache-Control', 'no-cache')
+    proxyReq.setHeader('Connection', 'keep-alive')
+  }
+})
+proxy.on('proxyRes', (proxyRes, req, res) => {
+  // 确保 SSE 响应不被 Vite 中间层拦截或缓冲
+  if (proxyRes.headers['content-type']?.includes('text/event-stream')) {
+    // 关键：设置 X-Accel-Buffering 为 no，防止代理层缓冲
+    res.setHeader('X-Accel-Buffering', 'no')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+  }
+})
+```
+### axios与fetch调用模型接口时的却别
+
+#### Fetch 是浏览器原生 API，天生就是“流”的接口
+它的核心设计是把响应体暴露为一个 ReadableStream（可读流）。可以通过 getReader() 一块一块地拿数据，不用等全部传输完。这在处理 AI 流式输出时是决定性的优势，因为能在第一个 token 到达时就立刻渲染出来。
+
+### Axios是基于 XMLHttpRequest 的封装，是一个“批处理”接口
+XHR 的设计理念是“等响应体全部接收完毕，再一次性交给你”。在浏览器端，你无法通过 XHR 拿到一个真正的流。所以 response.data 永远是在所有数据到齐后才被赋值的。即使它有 onDownloadProgress 回调，那也只是进度通知，你拿到的仍然是累积的全部数据，而不是“最新到达的那一小块”。
+
+
+### SSE概念
+SSE（Server-Sent Events，服务器推送事件）是 HTML5 规范里定义的一种服务器向浏览器单向推送数据的技术。
+
+#### 执行方式
+```text
+浏览器 ──请求──> 服务器
+浏览器 <──响应头（保持连接）── 服务器
+浏览器 <──数据块 1── 服务器
+浏览器 <──数据块 2── 服务器
+浏览器 <──数据块 3── 服务器
+...（连接一直开着，直到服务器主动关闭）
+```
+关键点：SSE 复用了 HTTP 协议，但把"响应"变成了一个持续打开的流。 
+

@@ -4,7 +4,7 @@
       
        <div class="third-box">
             <div class="echart-box">
-                <vCommon :option="vLine_dataOpt"></vCommon>
+                <vCommon :option="vLine_dataOpt" @chartClick="hanleParams"></vCommon>
             </div>
             <div class="echart-box">
                 <vCommon :option="vBar_dataOpt"></vCommon>
@@ -44,7 +44,7 @@
 import vCommon from '@/components/v-common.vue';
 import vPropor from '@/components/v-Propor.vue';
 import vFunnel from '@/components/v-Funnel.vue';
-import type {EChartsOption} from "echarts"
+import type {EChartsOption,ECElementEvent} from "echarts"
 import { ref,computed } from 'vue';
 import { grdopt,funnel,pictor,propor,polar,gauge,parallel } from '@/utils/mock';
 // 引入模拟数据 静态数据
@@ -54,7 +54,10 @@ import {vLine_dataOpt,vBar_dataOpt,middleoption,middle_3_option,middle_2_option}
 
 /* -----------------左上折线图----------------- */
 // 数据是对象数组 要把数据拆分 赋值给折线图
-
+const hanleParams=(params:ECElementEvent)=>{
+  console.log(params);
+  
+}
 
 
 /* -----------------左下柱状图----------------- */

@@ -1,7 +1,7 @@
 <template>
   <div class="layout-wrap">
     <!-- 左侧菜单栏 -->
-    <vMenu class="sidebar"></vMenu>
+    <digitalMenu class="menu-con"></digitalMenu>
 
     <!-- 右侧：子页面渲染位置！！子路由全部渲染在这里 -->
     <main class="main-content">
@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import vMenu from './v-menu.vue'
+import digitalMenu from './digital-menu.vue'
 
 interface MenuItem{
     path_id:number
@@ -52,12 +52,18 @@ function pushRoute(path_route:string){
   display: flex;
   height: 100%;
   box-sizing: border-box;
+  .menu-con{
+    width: 160px;
+    height: 100%;
+    border: 1px solid #EEE;
+  }
 }
 
 .main-content {
   flex: 1;
-  background: #f5f7fa;
-  overflow: auto;
+  background: #DDD;
+  overflow: hidden;
   box-sizing: border-box;
+  padding: 10px;
 }
 </style>

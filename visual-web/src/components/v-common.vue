@@ -3,9 +3,10 @@
 </template>
 
 <script setup lang="ts">
-import type { EChartsOption,ECharts } from 'echarts';
+import type { EChartsOption,ECharts,ECElementEvent } from 'echarts';
 import { echartsKey } from '@/types/keys';   
 import { inject,onBeforeUnmount,onMounted,ref, shallowRef, watch } from 'vue';
+
 
 const props=withDefaults(defineProps<{
     option:EChartsOption
@@ -18,6 +19,9 @@ const props=withDefaults(defineProps<{
     theme:undefined
 })
 
+const emit = defineEmits<{
+    chartClick:[params:ECElementEvent]
+}>()
 
 // 注入echarts 
 const echarts = inject(echartsKey)!
@@ -31,6 +35,7 @@ const initChart=()=>{
     if(!chartRef.value) return 
     echartsInstance.value=echarts.init(chartRef.value,props.theme)
     echartsInstance.value?.setOption(props.option)
+    echartsInstance.value.on('click',hanleChartClick)
 }
 
 // 定义一个窗口变化响应函数
@@ -45,6 +50,11 @@ watch(
     {deep:true}
 )
 
+
+const hanleChartClick=(params:ECElementEvent)=>{
+    emit('chartClick',params)
+}
+
 // 挂载完成后
 onMounted(()=>{
     initChart()
@@ -55,6 +65,7 @@ onMounted(()=>{
 // 组件摧毁之前 消除图表
 onBeforeUnmount(()=>{
     window.removeEventListener('resize',resizeChart)
+    echartsInstance.value?.off('click',hanleChartClick)
     echartsInstance.value?.dispose()
     echartsInstance.value=undefined
 })
