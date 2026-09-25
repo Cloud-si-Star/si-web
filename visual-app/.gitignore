@@ -1,0 +1,17 @@
+venv
+.idea
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# python缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 虚拟环境
+venv/
+.venv/

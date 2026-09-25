@@ -1,0 +1,2 @@
+def mock():
+    return None

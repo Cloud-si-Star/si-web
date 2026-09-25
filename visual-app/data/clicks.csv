@@ -1,0 +1,6 @@
+click_id,user_id,page,time,session_id
+1,101,Social,2026-08-01 09:15:00,sess_001
+2,101,Official,2026-08-01 10:30:00,sess_001
+3,102,SEA,2026-08-02 14:20:00,sess_002
+4,103,Email,2026-08-03 08:45:00,sess_003
+5,103,Social,2026-08-03 09:00:00,sess_003
