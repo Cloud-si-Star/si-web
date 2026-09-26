@@ -72,6 +72,5 @@ const queryParams=async ()=>{
 <style lang="scss" scoped>
 .alone-set{
     flex-direction: column;
-    padding: 15px;
 }
 </style>

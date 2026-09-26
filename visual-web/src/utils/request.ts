@@ -46,8 +46,6 @@ instance.interceptors.response.use(
     (response) => {
         const res = response.data
 
-        return response
-
         // 如果后端没有按 { code, message, data } 返回，直接放行
         if (res.code === undefined) {
             return response.data

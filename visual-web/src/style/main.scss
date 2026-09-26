@@ -30,9 +30,12 @@ body {
   border-radius: 10px;
   display: flex;
   overflow: hidden;
+  padding: 15px;
 
   .table-position {
     flex: 1;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   .btn-position {
