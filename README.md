@@ -3,30 +3,10 @@
 
 node version is 22
 
-创建vue3项目visual-web 
+## 主要功能
 
-Project name: 输入 visual-web
+### 数据可视化
+<img width="1920" height="869" alt="数据可视化" src="https://github.com/user-attachments/assets/5d0f291d-a1bd-4b2e-9a52-a05c92cb8d2b" />
 
-Add TypeScript?: Yes
-
-Add JSX Support?: No（一般不需要）
-
-Add Vue Router for Single Page Application development?: Yes 
-
-Add Pinia for state management?: Yes 
-
-Add Vitest for Unit Testing?: No（除非需要测试）
-
-Add an End-to-End Testing Solution?: No
-
-Add ESLint for code quality?: Yes
-
-Add Prettier for code formatting?: Yes
-
-数据屏：封装组件，只需要传入option即可使用
-
-后续：
-1、尝试修改元素颜色
-2、增加元素点击事件 重点
-3、根据点击事件修改数据 这部分有可能需要延后
-4、pinia 自己在尝试一次
+### 搭建AI对话
+<img width="1920" height="869" alt="AI对话" src="https://github.com/user-attachments/assets/6edeec66-dd9a-4194-88f0-3e1bbc4999f3" />
