@@ -1,45 +1,50 @@
 <template>
-  <div class="chat-container">
-    <!-- 消息列表 -->
-    <div class="message-list" ref="listRef">
-      <div
-        v-for="(msg, index) in messages"
-        :key="index"
-        :class="['message', msg.role]"
-      >
-        <div class="avatar">{{ msg.role === 'user' ? '我' : 'AI' }}</div>
-        <div class="bubble">{{ msg.content }}</div>
-      </div>
+  <div class="con-page">
+    <div class="nav-page"></div>
+    <div class="chat-container">
+      <!-- 消息列表 -->
+      <div class="message-list" ref="listRef">
+        <div
+          v-for="(msg, index) in messages"
+          :key="index"
+          :class="['message', msg.role]"
+        >
+         
+          <Avatar :type="msg.role==='user'?'user':'ai'"></Avatar>
+          <div class="bubble">{{ msg.content }}</div>
+        </div>
 
-      <!-- 正在生成的 AI 回复 -->
-      <div v-if="isGenerating" class="message assistant">
-        <div class="avatar">AI</div>
-        <div class="bubble">
-          {{ aiContent }}
-          <span class="cursor">▊</span>
+        <!-- 正在生成的 AI 回复 -->
+        <div v-if="isGenerating" class="message assistant">
+          <Avatar type="ai"></Avatar>
+          <div class="bubble">
+            {{ aiContent }}
+            <span class="cursor">▊</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 输入区 -->
-    <div class="input-area">
-      <textarea
-        v-model="input"
-        placeholder="输入消息，Enter 发送，Shift+Enter 换行"
-        @keydown.enter.exact.prevent="handleSend"
-        :disabled="isGenerating"
-        rows="2"
-      />
-      <button @click="handleSend" :disabled="isGenerating || !input.trim()">
-        {{ isGenerating ? '生成中...' : '发送' }}
-      </button>
+      <!-- 输入区 -->
+      <div class="input-area">
+        <textarea
+          v-model="input"
+          placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+          @keydown.enter.exact.prevent="handleSend"
+          :disabled="isGenerating"
+          rows="2"
+        />
+        <button @click="handleSend" :disabled="isGenerating || !input.trim()">
+          {{ isGenerating ? '生成中...' : '发送' }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
-import { useChat } from './chat.ts'
+import { useChat } from './index.ts'
+import Avatar from '@/components/Avatar.vue'
 
 const { messages, aiContent, isGenerating, sendMessage } = useChat()
 
@@ -67,20 +72,44 @@ function scrollToBottom() {
 watch(aiContent, scrollToBottom)
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+.nav-page{
+  width: 160px;
+  height: 100%;
+  border: 1px solid #EEE;
+}
+
+
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  max-width: 800px;
-  margin: 0 auto;
-  background: #f7f7f8;
+  height: 100%;
+  flex: 1;
+  margin: 10px;
+  background: #f3f3ff;
+  border-radius: 5px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .message-list {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  &::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(52, 145, 233, 0.45);
+    border-radius:4px;
+    &:hover{
+      background: rgba(25, 142, 252, 0.75);
+    }
+  }
 }
 
 .message {
@@ -121,7 +150,7 @@ watch(aiContent, scrollToBottom)
 }
 
 .message.user .bubble {
-  background: #4a90e2;
+  background-color: #43cee9;
   color: #fff;
 }
 

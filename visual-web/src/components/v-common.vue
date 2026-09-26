@@ -11,7 +11,7 @@ import { inject,onBeforeUnmount,onMounted,ref, shallowRef, watch } from 'vue';
 const props=withDefaults(defineProps<{
     option:EChartsOption
     width?:string
-    height:string
+    height?:string
     theme?:string
 }>(),{
     width:'100%',

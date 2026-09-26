@@ -9,7 +9,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch ,onUnmounted} from 'vue';
 import { useRouter,useRoute } from 'vue-router'
 
 interface MenuItem{
@@ -19,6 +19,8 @@ interface MenuItem{
     meta:string
     value:string
 }
+
+
 
 const route = useRoute()
 
@@ -72,7 +74,6 @@ function pushRoute(path_route:MenuItem){
     router.push(next_path)
 }
 
-
 </script>
 
 <style  lang="scss" scoped>
@@ -94,7 +95,7 @@ function pushRoute(path_route:MenuItem){
   top: 0px;
   left: 0px;
   z-index: 99;
-  transition: width 2s;
+  transition: width 1s;
   display: flex;
   align-items: center;
   flex-direction: column;

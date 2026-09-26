@@ -31,19 +31,34 @@ const routes: RouteRecordRaw[] = [
     name: 'digital',
     path: '/v-digital',
     component: LayoutDigital,
-    redirect: '/v-digital/d1-view',
+    redirect: '/v-digital/d-chat',
     children: [
       {
-        path: 'd1-view',
-        name: 'd1-view',
+        path: 'd-table',
+        name: 'd-table',
         component: () => import('@/views/d-table/index.vue')
       },
       {
-        path: 'd2-view',
-        name: 'd2-view',
+        path: 'd-chat',
+        name: 'd-chat',
         component: () => import('@/views/d-chat/index.vue')
+      },
+      {
+        path: 'd-drag',
+        name: 'd-drag',
+        component: () => import('@/views/d-drag/index.vue')
+      },
+      {
+        path: 'd-demo',
+        name: 'd-demo',
+        component: () => import('@/views/d-demo/index.vue')
       }
     ]
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    redirect: '/v-digital'
   }
 ]
 

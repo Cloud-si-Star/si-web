@@ -5,46 +5,13 @@
 
     <!-- 右侧：子页面渲染位置！！子路由全部渲染在这里 -->
     <main class="main-content">
-      <router-view />
+      <router-view></router-view>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import digitalMenu from './digital-menu.vue'
-
-interface MenuItem{
-    path_id:number
-    path:string
-    name:string
-    meta:string
-    value:string
-}
-
-const path:MenuItem[]=[
-    {   
-        path_id:10000,
-        path:"/v-visual",
-        name:"v-visual",
-        meta:"数据大屏",
-        value:"数据可视化"
-    },
-    {
-        path_id:10001,
-        path:"/v-scroll",
-        name:"v-scroll",
-        meta:"数据大屏",
-        value:"数据并发化"
-    },
-]
-
-const route=useRouter()
-
-function pushRoute(path_route:string){
-    route.push(path_route)
-}
-
+import digitalMenu from './digital-menu.vue';
 </script>
 
 <style scoped lang="scss">

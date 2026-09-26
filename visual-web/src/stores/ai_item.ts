@@ -20,7 +20,7 @@ const ai_arr: ai_item[] = [
     { ai_id: 17394, ai_name: 'Grok', ai_use: 198320 }
 ]
 
-export const userAiStore = defineStore('ai-use', () => {
+export const useAiStore = defineStore('ai-use', () => {
     const aiTable = ref<ai_item[]>(ai_arr)
 
     /* 业务逻辑 获取表格数据 */
@@ -36,5 +36,5 @@ export const userAiStore = defineStore('ai-use', () => {
 
     }
 
-    return { getAiTable, addAiItem }
+    return { aiTable, getAiTable, addAiItem }
 })

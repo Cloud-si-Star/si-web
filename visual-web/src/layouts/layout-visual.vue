@@ -20,55 +20,30 @@
 
     <!-- 右侧：子页面渲染位置！！子路由全部渲染在这里 -->
     <main class="main-content">
-         <Transition mode="out-in">
-            <router-view />
-         </Transition>
-      
+        <router-view v-slot="{ Component }">
+            <!-- 路由切换动画 -->
+            <transition name="fade" mode="out-in">
+                <!-- keep-alive 缓存页面，对应你之前路由不销毁的特性 -->
+                <!-- Component 由 router-view 自动注入，路由变它自动变 -->
+                <component :is="Component" />
+            </transition>
+        </router-view>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import visualMenu from './visual-menu.vue'
-import {ref} from 'vue'
+import {onUnmounted, ref} from 'vue'
+
+/* ==========菜单滑动滑出========== */
 
 const isOpen = ref<boolean>(false)
-
 const handleMenu= ()=>{
     isOpen.value=!isOpen.value
 }  
 
-interface MenuItem{
-    path_id:number
-    path:string
-    name:string
-    meta:string
-    value:string
-}
 
-const path:MenuItem[]=[
-    {   
-        path_id:10000,
-        path:"/v-visual",
-        name:"v-visual",
-        meta:"数据大屏",
-        value:"数据可视化"
-    },
-    {
-        path_id:10001,
-        path:"/v-scroll",
-        name:"v-scroll",
-        meta:"数据大屏",
-        value:"数据并发化"
-    },
-]
-
-const route=useRouter()
-
-function pushRoute(path_route:string){
-    route.push(path_route)
-}
 
 </script>
 
@@ -88,10 +63,8 @@ function pushRoute(path_route:string){
 
 .fixed-open{
     position: fixed;
-    
     top: 5px;
     left: 5px;
-   
     z-index: 999;
     .el-button {
         color: #60f1e7;

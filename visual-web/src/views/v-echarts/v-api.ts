@@ -1,7 +1,28 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { worldPopulationLine, countryPopBar } from '@/utils/mock_v1'
 import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts'
+import { useAiStore } from '@/stores/ai_item'
+import { storeToRefs } from 'pinia'
+
+const user_ai_store = useAiStore()
+
+// ✅ storeToRefs 把 state 转为 ref，保留响应式
+const { aiTable } = storeToRefs(user_ai_store)
+
+/* 左下图形option */
+const chart_bar_data = computed(() => {
+    const x: string[] = []
+    const y: number[] = []
+    aiTable.value.forEach(i => {
+        x.push(i.ai_name)
+        y.push(i.ai_use)
+    })
+    console.log(123);
+
+    return { x, y }
+})
+
 
 /* 左上图形option */
 const chart_line_data = computed(() => {
@@ -100,71 +121,7 @@ export const vLine_dataOpt = ref<EChartsOption>({
     ]
 })
 
-/* 左下图形option */
-const chart_bar_data = computed(() => {
-    const x: string[] = []
-    const y: number[] = []
-    countryPopBar.forEach(i => {
-        x.push(i.name)
-        y.push(i.value)
-    })
-    return { x, y }
-})
 
-export const vBar_dataOpt = {
-    tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-            type: 'shadow'
-        },
-        backgroundColor: 'rgba(112, 98, 235,0.15)',
-        textStyle: {
-            color: '#FFF'
-        }
-    },
-    xAxis: {
-        type: 'category',
-        data: chart_bar_data.value.x,
-        axisTick: {
-            alignWithLabel: true
-        },
-        axisLabel: {
-            color: '#e8e8e8',
-        },
-    },
-
-    yAxis: {
-        type: 'value',
-        axisLabel: {
-            color: '#e8e8e8',
-        },
-        splitLine: {
-            show: true, // 纵向网格线（x轴分割线）
-            lineStyle: {
-                type: 'dashed', // 虚线
-                color: 'rgba(120,150,180,0.25)', // 浅色，调低透明度
-                width: 1
-            }
-        }
-    },
-    series: [
-        {
-            name: 'Direct',
-            type: 'bar',
-            barWidth: '60%',
-            data: chart_bar_data.value.y,
-            itemStyle: {
-                color: new echarts.graphic.LinearGradient(
-                    0, 0, 0, 1,
-                    [
-                        { offset: 0, color: '#edafda' },
-                        { offset: 1, color: '#a5e7f0' }
-                    ]
-                )
-            }
-        }
-    ]
-};
 /* 右上图形option */
 
 /* 右下图形option */

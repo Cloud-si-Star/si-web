@@ -35,19 +35,19 @@ const activeRoute = computed(() => route.path)
 const menuList = [
   {
     label: 'AI对话',
-    path: '/v-digital/d2-view'
+    path: '/v-digital/d-chat'
   },
   {
     label: '数据仓库',
-    path: '/v-digital/d1-view'
-  },
-  {
-    label: '数据管理',
-    path: '/search'
+    path: '/v-digital/d-table'
   },
   {
     label: '动态组件',
-    path: '/drag-page'
+    path: '/v-digital/d-drag'
+  },
+  {
+    label: '数据管理',
+    path: '/v-digital/d-demo'
   },
   {
     label: '数据大屏',

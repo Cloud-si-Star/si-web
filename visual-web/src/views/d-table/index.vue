@@ -1,5 +1,5 @@
 <template>
-    <div class="con-page">
+    <div class="con-page alone-set">
         <div class="query-position">
             <el-form :inline="true" :model="formInline">
                 <el-form-item label="添加ID">
@@ -16,7 +16,9 @@
                 </el-form-item>
             </el-form>
         </div>
-        <div class="btn-position">按钮放置位置</div>
+        <div class="btn-position">
+            <el-button type="primary">导 出</el-button>
+        </div>
         <div class="table-position">
             <el-table
                 :data="tableAiData"
@@ -39,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import {userAiStore, type ai_item } from '@/stores/ai_item.ts'
+import {useAiStore, type ai_item } from '@/stores/ai_item.ts'
 import {ref} from 'vue'
 import { userApi, type User } from '@/api/user'
 const users = ref<User[]>([])
@@ -51,9 +53,9 @@ const formInline =ref<{
     ai_id:10001
 })
 
-const user_ai_store=userAiStore()
+const user_ai_store=useAiStore()
 
-const tableAiData = user_ai_store.getAiTable()
+const tableAiData = user_ai_store.aiTable
 
 const handleClick = (params:ai_item)=>{
     const copyItem = {...params}
@@ -68,16 +70,8 @@ const queryParams=async ()=>{
 </script>
 
 <style lang="scss" scoped>
-.con-page{
-    width: 100%;
-    height: 100%;
-    box-sizing: border-box;
-    background: #FFF;
-    border-radius: 10px;
-    display: flex;
+.alone-set{
     flex-direction: column;
-    .table-position{
-        flex: 1;
-    }
+    padding: 15px;
 }
 </style>

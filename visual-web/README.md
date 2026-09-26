@@ -119,3 +119,12 @@ SSE（Server-Sent Events，服务器推送事件）是 HTML5 规范里定义的�
 ```
 关键点：SSE 复用了 HTTP 协议，但把"响应"变成了一个持续打开的流。 
 
+
+#### 问题1：可视化侧边菜单栏 跳转路由总是会回收
+原因：顶层app.vue中使用 :key="route.path"
+```vue
+<router-view><component :is="Component" :key="route.path"/></router-view>
+```
+我子级菜单栏跳动  路由变化引起页面重新创建 导致侧边菜单栏被销毁 这个key值可以放在内部layout的<router-view>跳动口中
+
+key的作用：路径一变，key 就变，强制销毁旧组件、创建新组件 保证数据干净
