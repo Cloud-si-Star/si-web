@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Depends
+from sqlalchemy.orm import Session
+from datetime import datetime
+from app.core.database import get_db
+from app.models.ai_info import AiInfo
 
 from app.schemas.response import ResponseModel, success
 from app.services.csv_service import (
@@ -12,99 +16,6 @@ from app.services.csv_service import (
 
 router = APIRouter(prefix="/data", tags=["data"])
 
-aiTable = [
-    {
-        "ai_id": 52817,
-        "ai_name": "DeepSeek",
-        "ai_use": 892341,
-        "ai_status": "online",
-        "ai_status_code": 1,
-        "create_time": "2026-01-12 09:24:10",
-        "remark": "国产开源大模型，支持代码与长文本"
-    },
-    {
-        "ai_id": 31204,
-        "ai_name": "ChatGPT",
-        "ai_use": 1523876,
-        "ai_status": "online",
-        "ai_status_code": 1,
-        "create_time": "2025-11-03 14:10:55",
-        "remark": "通用对话模型，多场景能力强"
-    },
-    {
-        "ai_id": 74619,
-        "ai_name": "Claude",
-        "ai_use": 734219,
-        "ai_status": "online",
-        "ai_status_code": 1,
-        "create_time": "2025-12-20 11:33:22",
-        "remark": "超大上下文窗口，适合文档分析"
-    },
-    {
-        "ai_id": 19083,
-        "ai_name": "Gemini",
-        "ai_use": 612874,
-        "ai_status": "offline",
-        "ai_status_code": 0,
-        "create_time": "2026-02-05 16:45:18",
-        "remark": "多模态模型，当前版本维护中"
-    },
-    {
-        "ai_id": 60527,
-        "ai_name": "通义千问",
-        "ai_use": 423110,
-        "ai_status": "online",
-        "ai_status_code": 1,
-        "create_time": "2026-01-28 10:12:44",
-        "remark": "阿里自研大模型，中文优化较好"
-    },
-    {
-        "ai_id": 45123,
-        "ai_name": "文心一言",
-        "ai_use": 389201,
-        "ai_status": "online",
-        "ai_status_code": 1,
-        "create_time": "2025-10-15 08:55:30",
-        "remark": "百度生成式AI，知识检索能力强"
-    },
-    {
-        "ai_id": 88345,
-        "ai_name": "星火大模型",
-        "ai_use": 276543,
-        "ai_status": "offline",
-        "ai_status_code": 0,
-        "create_time": "2026-02-18 15:20:11",
-        "remark": "讯飞模型，语音相关能力突出，版本升级暂停服务"
-    },
-    {
-        "ai_id": 22109,
-        "ai_name": "Llama3",
-        "ai_use": 198740,
-        "ai_status": "online",
-        "ai_status_code": 1,
-        "create_time": "2026-03-01 09:10:25",
-        "remark": "Meta开源模型，本地部署常用"
-    },
-    {
-        "ai_id": 33782,
-        "ai_name": "Qwen2",
-        "ai_use": 165320,
-        "ai_status": "online",
-        "ai_status_code": 1,
-        "create_time": "2026-03-10 14:30:07",
-        "remark": "开源轻量化模型，推理速度快"
-    },
-    {
-        "ai_id": 90147,
-        "ai_name": "GLM4",
-        "ai_use": 241356,
-        "ai_status": "offline",
-        "ai_status_code": 0,
-        "create_time": "2026-02-22 17:05:42",
-        "remark": "智谱AI，接口服务器迁移维护"
-    }
-]
-
 
 @router.get('/list', response_model=ResponseModel)
 @print_args(enable=True)
@@ -112,10 +23,69 @@ def get_ai_list(
         ai_name: str | None = Query(None),
         ai_status: str | None = Query(None),
         ai_date: str | None = Query(None),
-        page: int | None = Query(1),
-        pageSize: int | None = Query(10),
+        page: int = Query(1, ge=1),
+        pageSize: int = Query(10, ge=1, le=100),
+        db: Session = Depends(get_db),
 ):
-    return success(data={"list": aiTable, "total": len(aiTable), "page": 1, "pageSize": 10})
+    # 1. 基础查询
+    query = db.query(AiInfo)
+
+    # 2. 条件筛选
+    if ai_name:
+        # 模糊匹配名称
+        query = query.filter(AiInfo.ai_name.like(f"%{ai_name}%"))
+
+    if ai_status:
+        # 状态文本精确匹配
+        query = query.filter(AiInfo.ai_status == ai_status)
+
+    if ai_date:
+        # 按创建日期筛选，ai_date 传 "2026-02-22" 这种
+        try:
+            day = datetime.strptime(ai_date, "%Y-%m-%d").date()
+            query = query.filter(
+                AiInfo.create_time >= datetime.combine(day, datetime.min.time()),
+                AiInfo.create_time < datetime.combine(day, datetime.max.time()),
+            )
+        except ValueError:
+            # 日期格式不对就忽略该条件，避免 500
+            pass
+
+    # 3. 总数（要在分页前算）
+    total = query.count()
+
+    # 4. 分页
+    offset = (page - 1) * pageSize
+    rows = (
+        query.order_by(AiInfo.id.desc())
+        .offset(offset)
+        .limit(pageSize)
+        .all()
+    )
+
+    # 5. 转成 dict，避免 ORM 对象直接序列化
+    data_list = [
+        {
+            "id": r.id,
+            "ai_id": r.ai_id,
+            "ai_name": r.ai_name,
+            "ai_use": r.ai_use,
+            "ai_status": r.ai_status,
+            "ai_status_code": r.ai_status_code,
+            "create_time": r.create_time.strftime("%Y-%m-%d %H:%M:%S") if r.create_time else None,
+            "remark": r.remark,
+        }
+        for r in rows
+    ]
+
+    return success(
+        data={
+            "list": data_list,
+            "total": total,
+            "page": page,
+            "pageSize": pageSize,
+        }
+    )
 
 
 @router.get("/files", response_model=ResponseModel)
