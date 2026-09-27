@@ -6,7 +6,8 @@ from app.services.csv_service import (
     read_csv_paginated,
     stats_csv,
     list_csv_files,
-    pie_csv_read
+    pie_csv_read,
+    print_args
 )
 
 router = APIRouter(prefix="/data", tags=["data"])
@@ -106,6 +107,7 @@ aiTable = [
 
 
 @router.get('/list', response_model=ResponseModel)
+@print_args(enable=True)
 def get_ai_list(
         ai_name: str | None = Query(None),
         ai_status: str | None = Query(None),
@@ -113,7 +115,6 @@ def get_ai_list(
         page: int | None = Query(1),
         pageSize: int | None = Query(10),
 ):
-    print(ai_name, ai_status, ai_date, page, pageSize)
     return success(data={"list": aiTable, "total": len(aiTable), "page": 1, "pageSize": 10})
 
 

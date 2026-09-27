@@ -19,7 +19,7 @@
             </el-form>
         </div>
         <div class="btn-position">
-            <el-button type="primary" @click="queryToService">查 询</el-button>
+            <el-button type="primary" @click="debouncedSearch">查 询</el-button>
             <el-button>重 置</el-button>
             <el-button type="success">新 增</el-button>
         </div>
@@ -54,6 +54,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { tableApi, type tableListParams, type tableDTO } from '@/api/table';
+import { debounce, throttle } from '@/utils/util';
 
 const options = [
     {
@@ -81,20 +82,25 @@ const formInline = ref<tableListParams>({
 const tableData = ref<tableDTO[]>([])
 
 const queryToService = () => {
+    console.log('打印几次');
+
     let params: tableListParams = formInline.value
     tableApi.getList(params).then(res => {
 
         tableData.value = res.list
-
     }).catch(error => {
         console.log(error)
     })
 }
 
+const debouncedSearch = throttle(queryToService, 1000)
+
+
 
 onMounted(() => {
-    queryToService()
+    debouncedSearch()
 })
+
 
 </script>
 

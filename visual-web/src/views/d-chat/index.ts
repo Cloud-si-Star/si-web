@@ -1,11 +1,16 @@
 import { ref } from "vue"
 
-interface Message {
-    role: 'user' | 'assistant' | 'system',
+export interface Message {
+    role: 'user' | 'assistant' | 'system'
     content: string
 }
 
-function chatToAiWorld(params: { messages: Message[] }): Promise<Response> {
+/**
+ * 
+ * @param  message类型传递给后端模型数据
+ * @returns 
+ */
+function chatAiWorld(params: { messages: Message[] }): Promise<Response> {
     return fetch('/api/v2/mock/chat', {
         method: 'POST',
         headers: {
@@ -15,27 +20,31 @@ function chatToAiWorld(params: { messages: Message[] }): Promise<Response> {
     })
 }
 
-export function useChat() {
+/**
+ * 定义对象 里面有sendmessage方法请求接口  处理数据
+ */
+export const useChat = () => {
     const messages = ref<Message[]>([])
     const aiContent = ref('')
     const isGenerating = ref(false)
 
     async function sendMessage(userInput: string) {
+        /* 用户输入为空 或者 正在生成中 都不执行方法 */
         if (!userInput.trim() || isGenerating.value) return
-        messages.value.push(
-            {
-                role: 'user',
-                content: userInput.trim()
-            }
-        )
 
-        aiContent.value = ''
         isGenerating.value = true
 
-        try {
-            const response = await chatToAiWorld({ messages: messages.value })
+        aiContent.value = ''
 
-            if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        messages.value.push({ role: 'user', content: userInput.trim() })
+
+        try {
+
+
+
+            const response = await chatAiWorld({ messages: messages.value })
+
+            if (!response.ok) throw new Error(`HTTP ERROR ${response.status}`)
 
             const reader = response.body!.getReader()
 
@@ -56,30 +65,30 @@ export function useChat() {
 
                 for (const line of lines) {
                     if (!line.startsWith('data: ')) continue
-                    const data = line.slice(6)
+                    /* 因为格式就是第六个之后才是内容 约定 */
+                    let text = line.slice(6)
 
-                    if (data === '[DONE]') break
+                    if (text == '[DONE]') break
 
-                    if (data.startsWith('[ERROR]')) {
-                        aiContent.value += `\n[错误: ${data}]`
+                    if (text.startsWith('[ERROR]')) {
+                        aiContent.value += `\n[错误: ${text}]`
                         break
                     }
 
-                    aiContent.value += data
+                    aiContent.value += text
 
                 }
             }
-            messages.value.push({
-                role: 'assistant',
-                content: aiContent.value
-            })
+
+            messages.value.push({ role: 'assistant', content: aiContent.value })
+
         } catch (error) {
-            console.log('请求失败: ', error)
+            console.error('请求失败:', error)
             aiContent.value += '\n[网络请求失败]'
         } finally {
             isGenerating.value = false
         }
-    }
 
-    return { aiContent, isGenerating, messages, sendMessage }
+    }
+    return { messages, aiContent, sendMessage, isGenerating }
 }

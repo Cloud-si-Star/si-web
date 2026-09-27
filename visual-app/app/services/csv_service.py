@@ -7,6 +7,26 @@ import pandas as pd
 from app.core.config import settings
 from app.utils.exceptions import BizException
 
+from functools import wraps
+from typing import Callable
+
+
+def print_args(enable: bool = True):
+    def decorator(func: Callable):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # ========== 打印参数 ==========
+            if enable:
+                print(f"调用函数: {func.__name__}")
+                print(f"位置参数 args: {args}")
+                print(f"关键字参数 kwargs: {kwargs}")
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
 
 def _resolve_csv_path(filename: str) -> Path:
     """校验并返回 data 目录下的 csv 文件路径"""
@@ -79,11 +99,11 @@ def read_csv_paginated(filename: str, page: int = 1, page_size: int = 50) -> dic
 _ALLOWED_AGGS = {"count", "sum", "mean", "min", "max", "median"}
 
 
-def pie_csv_read(filename:str)->dict:
+def pie_csv_read(filename: str) -> dict:
     file_path = _resolve_csv_path(filename)
     df = pd.read_csv(file_path)
 
-    grouped_multiple = df.groupby('country').agg({'population': 'sum','id': 'first',}).reset_index() 
+    grouped_multiple = df.groupby('country').agg({'population': 'sum', 'id': 'first', }).reset_index()
     # 2. 使用 nlargest 直接获取人口最多的前 10 条记录
     top_10_df = grouped_multiple.nlargest(10, 'population')
 
@@ -92,22 +112,21 @@ def pie_csv_read(filename:str)->dict:
     top_10_df['unit'] = '百万'
     print(top_10_df.info)
     # 4. 仅选取需要的三个字段，并转换为字典列表传给前端
-    result_list = top_10_df[['id', 'country', 'population','unit']].to_dict(orient='records')
+    result_list = top_10_df[['id', 'country', 'population', 'unit']].to_dict(orient='records')
 
     return {
-        'total':len(result_list),
-        'page':result_list
-        
+        'total': len(result_list),
+        'page': result_list
+
     }
 
 
-
 def stats_csv(
-    filename: str,
-    group_by: str,
-    agg: str = "count",
-    metric: str | None = None,
-    top: int | None = None,
+        filename: str,
+        group_by: str,
+        agg: str = "count",
+        metric: str | None = None,
+        top: int | None = None,
 ) -> dict:
     """
     对 csv 按 group_by 列分组统计后返回结果。
