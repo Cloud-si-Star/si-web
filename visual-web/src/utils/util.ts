@@ -10,7 +10,6 @@ export function debounce(fn: (...args: any[]) => void, delay: number) {
 
         timer = window.setTimeout(() => {
             fn(...args)
-
         }, delay)
     }
 }

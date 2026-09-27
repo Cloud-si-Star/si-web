@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Query, Depends
+from fastapi import APIRouter, Query, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import datetime
 from app.core.database import get_db
-from app.models.ai_info import AiInfo
+from app.schemas.ai_info import AiInfoPage, AiInfoQuery, AiInfoUpdate
+from app.services import ai_info as ai_service
 
 from app.schemas.response import ResponseModel, success
 from app.services.csv_service import (
@@ -17,75 +17,25 @@ from app.services.csv_service import (
 router = APIRouter(prefix="/data", tags=["data"])
 
 
-@router.get('/list', response_model=ResponseModel)
-@print_args(enable=True)
-def get_ai_list(
-        ai_name: str | None = Query(None),
-        ai_status: str | None = Query(None),
-        ai_date: str | None = Query(None),
-        page: int = Query(1, ge=1),
-        pageSize: int = Query(10, ge=1, le=100),
+@router.patch("/list")
+def update_ai(
+        payload: AiInfoUpdate,
         db: Session = Depends(get_db),
 ):
-    # 1. 基础查询
-    query = db.query(AiInfo)
+    obj = ai_service.update_ai_info(db, payload)
+    if not obj:
+        raise HTTPException(status_code=404, detail="记录不存在")
+    return success(data={"code": 0, "message": "更新成功"})
 
-    # 2. 条件筛选
-    if ai_name:
-        # 模糊匹配名称
-        query = query.filter(AiInfo.ai_name.like(f"%{ai_name}%"))
 
-    if ai_status:
-        # 状态文本精确匹配
-        query = query.filter(AiInfo.ai_status == ai_status)
-
-    if ai_date:
-        # 按创建日期筛选，ai_date 传 "2026-02-22" 这种
-        try:
-            day = datetime.strptime(ai_date, "%Y-%m-%d").date()
-            query = query.filter(
-                AiInfo.create_time >= datetime.combine(day, datetime.min.time()),
-                AiInfo.create_time < datetime.combine(day, datetime.max.time()),
-            )
-        except ValueError:
-            # 日期格式不对就忽略该条件，避免 500
-            pass
-
-    # 3. 总数（要在分页前算）
-    total = query.count()
-
-    # 4. 分页
-    offset = (page - 1) * pageSize
-    rows = (
-        query.order_by(AiInfo.id.desc())
-        .offset(offset)
-        .limit(pageSize)
-        .all()
-    )
-
-    # 5. 转成 dict，避免 ORM 对象直接序列化
-    data_list = [
-        {
-            "id": r.id,
-            "ai_id": r.ai_id,
-            "ai_name": r.ai_name,
-            "ai_use": r.ai_use,
-            "ai_status": r.ai_status,
-            "ai_status_code": r.ai_status_code,
-            "create_time": r.create_time.strftime("%Y-%m-%d %H:%M:%S") if r.create_time else None,
-            "remark": r.remark,
-        }
-        for r in rows
-    ]
-
-    return success(
-        data={
-            "list": data_list,
-            "total": total,
-            "page": page,
-            "pageSize": pageSize,
-        }
-    )
+@print_args(enable=True)
+@router.get("/list", response_model=AiInfoPage)
+def get_ai_list(
+        cond: AiInfoQuery = Depends(),
+        db: Session = Depends(get_db),
+):
+    """分页查询 AI 信息列表"""
+    return ai_service.get_ai_list(db, cond)
 
 
 @router.get("/files", response_model=ResponseModel)
