@@ -16,6 +16,60 @@ from app.services.csv_service import (
 
 router = APIRouter(prefix="/data", tags=["data"])
 
+from fastapi import File, UploadFile, Form
+import os
+import uuid
+from datetime import datetime
+
+# 存储目录
+UPLOAD_DIR = "data"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+
+@router.post("/upload")
+async def upload_file(
+        file: UploadFile = File(...),
+        type: str = Form(None),  # 对应前端 extraData 里的字段
+):
+    # 1. 基本校验
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="文件名不能为空")
+
+    # 2. 限制后缀（按需改）
+    ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".gif", ".pdf", ".xlsx", ".docx", ".zip"}
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXT:
+        raise HTTPException(status_code=400, detail=f"不支持的文件类型: {ext}")
+
+    # 3. 限制大小（如 10MB）—— 边读边判，避免一次性读入内存
+    MAX_SIZE = 10 * 1024 * 1024
+    size = 0
+
+    # 4. 生成唯一文件名，避免覆盖
+    save_name = f"{datetime.now():%Y%m%d%H%M%S}_{uuid.uuid4().hex}{ext}"
+    save_path = os.path.join(UPLOAD_DIR, save_name)
+
+    try:
+        with open(save_path, "wb") as f:
+            while chunk := await file.read(1024 * 1024):  # 每次 1MB
+                size += len(chunk)
+                if size > MAX_SIZE:
+                    f.close()
+                    os.remove(save_path)
+                    raise HTTPException(status_code=413, detail="文件超过 10MB")
+                f.write(chunk)
+    except HTTPException:
+        raise
+    except Exception as e:
+        if os.path.exists(save_path):
+            os.remove(save_path)
+        raise HTTPException(status_code=500, detail=f"保存失败: {str(e)}")
+    finally:
+        await file.close()
+
+    # 5. 返回你前端约定的 ApiResult 结构
+    return success(data={"code": 0, "message": "更新成功"})
+
 
 @router.patch("/list")
 def update_ai(

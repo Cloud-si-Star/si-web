@@ -43,8 +43,12 @@ instance.interceptors.request.use(
  *       统一处理业务错误和 HTTP 错误
  */
 instance.interceptors.response.use(
-    (response) => {
+    (response: AxiosResponse) => {
         const res = response.data
+
+        if (response.config.responseType === 'blob') {
+            return response
+        }
 
         // 如果后端没有按 { code, message, data } 返回，直接放行
         if (res.code === undefined) {

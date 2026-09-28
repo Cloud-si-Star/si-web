@@ -1,81 +1,99 @@
 <template>
-    <div class="con-page">
-        <div ref="chatRef" class="chatView"></div>
+    <div class="con-page alone-set">
+        <div class="table-content">
+
+
+        </div>
+        <div class="upload-page">
+            <div class="title-content">文件上传</div>
+            <el-upload class="avatar-uploader" :auto-upload="false" :show-file-list="false"
+                :on-change="beforeAvatarUpload">
+                <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            </el-upload>
+            <el-button type="primary" @click="hanleFile">上 传</el-button>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { echartsKey } from '@/types/keys';
-import type { ECharts, EChartsOption } from 'echarts';
-import { inject,onBeforeUnmount,onMounted,ref, shallowRef } from 'vue';
+import { tableApi, type tableListParams, type tableDTO, type UpdateTableDTO } from '@/api/table';
+import { ref } from 'vue'
+import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
+import type { UploadProps } from 'element-plus'
 
+const imageUrl = ref('')
 
-const echarts =inject(echartsKey)!
+const fileValue = ref<File>()
 
-const chatRef = ref<HTMLElement>()
-
-const echartsInstance = shallowRef<ECharts>()
-
-const option:EChartsOption={
-    title:{
-        text:'手写注册图表'
-    },
-    xAxis:{
-        type:'category',
-        data:['百度文心','通义千问','deepseek','chatGPT','KIMI']
-    },
-    yAxis:{
-        type:'value'
-    },
-    tooltip:{
-        show:true
-    },
-    series:[
-        {
-            type:'bar',
-            data:[50,30,70,40,60],
-            itemStyle:{
-                color:{
-                    type:'linear',
-                    x:0.5,
-                    y:0.5,
-                    x2:0.7,
-                    y2:0.9,
-                    colorStops:[
-                        {offset:0,color:'#4fc3ff'},
-                        {offset:1,color:'#1a5fb4'}
-                    ]
-                }
-            }
-        }
-    ]
+const handleAvatarSuccess: UploadProps['onSuccess'] = (
+    response,
+    uploadFile
+) => {
+    imageUrl.value = URL.createObjectURL(uploadFile.raw!)
 }
 
-const initchart = ()=>{
-    if(!chatRef.value) return
-    echartsInstance.value=echarts.init(chatRef.value,'')
-    echartsInstance.value.setOption(option)
+
+const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
+    console.log(rawFile);
+    fileValue.value = rawFile
+    return true
+
+    if (rawFile.type !== 'image/jpeg') {
+        ElMessage.error('Avatar picture must be JPG format!')
+        return false
+    } else if (rawFile.size / 1024 / 1024 > 2) {
+        ElMessage.error('Avatar picture size can not exceed 2MB!')
+        return false
+    }
+    return true
 }
 
-const resizeChart=()=>echartsInstance.value?.resize()
+const hanleFile = () => {
 
-onMounted(()=>{
-    initchart()
-    window.addEventListener('resize',resizeChart)
-})
-
-
-onBeforeUnmount(()=>{
-    window.removeEventListener('resize',resizeChart)
-    echartsInstance.value?.dispose()
-    echartsInstance.value=undefined
-})
+    tableApi.upload(fileValue.value!)
+}
 
 </script>
 
 <style lang="scss" scoped>
-.chatView{
-    width: 100%;
-    height: 100%;
+.upload-page {
+    width: 240px;
+    margin-left: 10px;
+    border: 3px dashed #dfdff5;
+    border-radius: 7px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .title-content {
+
+        height: 40px;
+        width: 100%;
+        line-height: 40px;
+        font-weight: 600;
+        text-align: left;
+        padding-left: 20px;
+    }
+
+    .avatar-uploader {
+        width: 200px;
+        height: 120px;
+        border: 1px solid;
+        text-align: center;
+        line-height: 120px;
+        background: #f4f4ff;
+        border: 1px dashed #f4f4ff;
+        border-radius: 5px;
+
+        &:hover {
+            cursor: pointer;
+        }
+    }
+}
+
+.table-content {
+    flex: 1;
 }
 </style>

@@ -1,4 +1,4 @@
-import type { PageParams, PageResult, Service‌Response } from "@/types/types"
+import type { PageParams, PageResult, Service‌Response, ApiResponse } from "@/types/types"
 import { request } from "@/utils/request"
 
 /* 创建用户的请求体 */
@@ -30,6 +30,18 @@ export const tableApi = {
 
     update(params: UpdateTableDTO) {
         return request.patch<Service‌Response>('/v1/data/list', params)
+    },
+
+    upload(params: File) {
+        let cfg = {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        }
+
+        const formData = new FormData()
+
+        formData.append('file', params)
+
+        return request.post<ApiResponse>('/v1/data/upload', formData, cfg)
     }
 
 }

@@ -19,7 +19,8 @@ import digitalMenu from './digital-menu.vue';
   display: flex;
   height: 100%;
   box-sizing: border-box;
-  .menu-con{
+
+  .menu-con {
     width: 160px;
     height: 100%;
     border: 1px solid #EEE;
@@ -28,7 +29,7 @@ import digitalMenu from './digital-menu.vue';
 
 .main-content {
   flex: 1;
-  background: #DDD;
+  background: rgb(223 223 245);
   overflow: hidden;
   box-sizing: border-box;
   padding: 10px;
