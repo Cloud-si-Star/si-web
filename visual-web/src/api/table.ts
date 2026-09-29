@@ -19,6 +19,8 @@ export interface tableDTO {
 
 export interface tableListParams extends PageParams, searchForm { }
 
+const arrName = ['张无忌', '赵敏', '周芷若', '小龙女', '郭襄', '黄蓉', '任盈盈', '王语嫣', '阿朱', '阿紫']
+
 /** 更新用户的请求体（全部可选） */
 export type UpdateTableDTO = Partial<tableDTO>
 
@@ -41,7 +43,14 @@ export const tableApi = {
 
         formData.append('file', params)
 
-        return request.post<ApiResponse>('/v1/data/upload', formData, cfg)
+        /* 从arrName中随机取一个名字作为上传用户 */
+        const randomName = arrName[Math.floor(Math.random() * arrName.length)]
+
+        formData.append('upload_user', randomName!)
+
+        formData.append('remark', '测试文件')
+
+        return request.post<ApiResponse>('/v1/data/with-record', formData, cfg)
     }
 
 }
