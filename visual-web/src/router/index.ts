@@ -52,6 +52,11 @@ const routes: RouteRecordRaw[] = [
         path: 'd-demo',
         name: 'd-demo',
         component: () => import('@/views/d-demo/index.vue')
+      },
+      {
+        path: 'd-menu',
+        name: 'd-menu',
+        component: () => import('@/views/d-menu/index.vue')
       }
     ]
   },

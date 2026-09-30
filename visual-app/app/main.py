@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.logger import logger
-from app.api.v1 import data
+from app.api.v1 import data, menus
 from app.api.v2 import mock
 from app.utils.exceptions import register_exception_handlers
 
@@ -28,6 +28,7 @@ register_exception_handlers(app)
 
 # 注册路由
 app.include_router(data.router, prefix="/api/v1")
+app.include_router(menus.router, prefix="/api/v1")
 app.include_router(mock.router, prefix="/api/v2")
 
 
