@@ -1,10 +1,14 @@
 <template>
   <!-- 外层div包裹，控制宽高，菜单继承 -->
   <div class="menu-wrap">
+    <div class="logo-box" @click="$router.push('/v-visual')">
+      <vlogo></vlogo>
+      <span>数智工作台</span>
+    </div>
     <!-- 侧边菜单，背景白色 -->
     <el-menu :default-active="activeRoute" router background-color="#ffffff" text-color="#333333"
       active-text-color="#1890ff" @select="handleMenuSelect">
-      <el-menu-item v-for="item in menuList" :key="item.path" :index="item.path">
+      <el-menu-item v-for="item in menu" :key="item.path" :index="item.path">
         <template #title>
           {{ item.label }}
         </template>
@@ -16,38 +20,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useMenuStore } from '@/stores/menu.ts'
+import vlogo from '@/components/v-logo.vue'
 
 const route = useRoute()
 // 当前激活菜单，自动根据路由高亮
 const activeRoute = computed(() => route.path)
 
-// 菜单数组，你可以从pinia/接口获取
-const menuList = [
-  {
-    label: 'AI对话',
-    path: '/v-digital/d-chat'
-  },
-  {
-    label: '数据仓库',
-    path: '/v-digital/d-table'
-  },
-  {
-    label: '动态组件',
-    path: '/v-digital/d-drag'
-  },
-  {
-    label: '数据管理',
-    path: '/v-digital/d-demo'
-  },
-  {
-    label: '菜单管理',
-    path: '/v-digital/d-menu'
-  },
-  {
-    label: '数据大屏',
-    path: '/v-visual'
-  }
-]
+const menu = useMenuStore().workbenchMenuList
 
 // 点击事件
 const handleMenuSelect = (key: string) => {
@@ -57,14 +37,25 @@ const handleMenuSelect = (key: string) => {
 </script>
 
 <style scoped>
+.logo-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  height: 45px;
+}
+
 .menu-wrap {
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
 }
 
 .menu-wrap :deep(.el-menu) {
   width: inherit;
-  height: inherit;
+  height: calc(100% - 45px);
   border-right: none;
 }
 

@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -182,6 +183,41 @@ def get_file_list(
     - 支持分页
     """
     return file_service.get_file_list(db, cond)
+
+
+@router.get("/download/{file_id}")
+def download_file(
+        file_id: int,
+        db: Session = Depends(get_db),
+):
+    """
+    文件下载接口
+
+    - 通过文件ID下载文件
+    - 自动还原原始文件名
+    - 返回文件流
+
+    Args:
+        file_id: 文件记录ID
+
+    Returns:
+        FileResponse: 文件响应，自动设置 Content-Disposition 为原始文件名
+    """
+    # 查询数据库记录
+    record = file_service.get_file_by_id(db, file_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="文件记录不存在")
+
+    # 检查文件是否还存在
+    if not os.path.exists(record.file_path):
+        raise HTTPException(status_code=404, detail="文件已被删除或不存在")
+
+    # 返回文件，文件名还原为原始文件名
+    return FileResponse(
+        path=record.file_path,
+        filename=record.file_name,  # 还原原始文件名
+        media_type="application/octet-stream",
+    )
 
 
 @router.patch("/list", response_model=ResponseModel)

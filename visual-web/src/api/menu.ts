@@ -50,6 +50,11 @@ export const menuApi = {
         return request.get<MenuTreeNode[]>('/v1/menus')
     },
 
+    /** GET /v1/menus：获取由后端按 parent_id 组装好的递归菜单树。去除parent_id=0的根菜单 */
+    getListTree() {
+        return request.get<MenuTreeNode[]>('/v1/menus/tree')
+    },
+
     /** POST /v1/menus：创建菜单，成功时返回新建的完整菜单记录。 */
     create(data: CreateMenuDTO) {
         return request.post<MenuItem>('/v1/menus', data)

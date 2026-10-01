@@ -10,30 +10,31 @@
     <!-- 开门遮罩 -->
     <Transition name="gate" @after-enter="onGateOpened">
       <div v-if="gateVisible" class="gate">
-        <div class="gate-door gate-left"  ></div>
-        <div class="gate-door gate-right" ></div>
+        <div class="gate-door gate-left"></div>
+        <div class="gate-door gate-right"></div>
       </div>
     </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useMenuStore } from '@/stores/menu.ts'
 
 const route = useRoute()
 
 const gateVisible = ref(false)
 
-const visual_path='v-visual'
+const visual_path = 'v-visual'
 
-const digital_path='v-digital'
+const digital_path = 'v-digital'
 
 // 路由变化时触发遮罩
 watch(
   () => route.path,
-  (newPath,oldPath) => {
-    if(isNeedTogggle(newPath,oldPath)){
+  (newPath, oldPath) => {
+    if (isNeedTogggle(newPath, oldPath)) {
       gateVisible.value = true
     }
   }
@@ -42,9 +43,9 @@ watch(
 
 
 
-function isNeedTogggle(newpath:string,oldpath:string):boolean{
+function isNeedTogggle(newpath: string, oldpath: string): boolean {
 
-  return (newpath.includes(visual_path) && oldpath.includes(digital_path) ) || (newpath.includes(digital_path) && oldpath.includes(visual_path))
+  return (newpath.includes(visual_path) && oldpath.includes(digital_path)) || (newpath.includes(digital_path) && oldpath.includes(visual_path))
 
 }
 
@@ -52,10 +53,19 @@ function isNeedTogggle(newpath:string,oldpath:string):boolean{
 function onGateOpened() {
   gateVisible.value = false
 }
+
+
+/* 初始化时获取数据接口 */
+const useMenu = useMenuStore()
+
+onMounted(() => {
+  useMenu.loadMenuTree()
+})
+
 </script>
 
 <style lang="scss" scoped>
-.app-page{
+.app-page {
   width: 100vw;
   height: 100vh;
   box-sizing: border-box;
@@ -69,7 +79,8 @@ function onGateOpened() {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  pointer-events: none;   /* 不挡点击 */
+  pointer-events: none;
+  /* 不挡点击 */
   overflow: hidden;
 }
 
@@ -99,17 +110,21 @@ function onGateOpened() {
 .gate-enter-active {
   transition: opacity 0s ease;
 }
+
 .gate-enter-from {
   opacity: 0;
 }
+
 .gate-enter-to {
   opacity: 1;
 }
 
 /* ---------- 遮罩消失（门滑开）---------- */
 .gate-leave-active {
-  transition: opacity 0.1s ease 0.6s;   /* 等门滑完再消失 */
+  transition: opacity 0.1s ease 0.6s;
+  /* 等门滑完再消失 */
 }
+
 .gate-leave-to {
   opacity: 0;
 }
@@ -118,16 +133,28 @@ function onGateOpened() {
 .gate-leave-active .gate-left {
   animation: slide-left 0.6s cubic-bezier(0.7, 0, 0.3, 1) forwards;
 }
+
 .gate-leave-active .gate-right {
   animation: slide-right 0.6s cubic-bezier(0.7, 0, 0.3, 1) forwards;
 }
 
 @keyframes slide-left {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-100%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
 }
+
 @keyframes slide-right {
-  from { transform: translateX(0); }
-  to   { transform: translateX(100%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
 }
 </style>

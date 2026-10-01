@@ -26,6 +26,33 @@ def get_menu_tree(db: Session) -> list[MenuTreeResponse]:
     return roots
 
 
+def get_menu_tree_extra_parent_zero(db: Session) -> list[MenuTreeResponse]:
+    """
+    查询全部菜单并按parent_id组装树结构
+    修改点：不再返回partent_id=0的一级菜单
+    """
+    rows = db.query(Menu).order_by(Menu.sort_order.asc(), Menu.id.asc()).all()
+    nodes = {
+        row.id: MenuTreeResponse.model_validate(row) for row in rows
+    }
+
+    roots: list[MenuTreeResponse] = []
+
+    for row in rows:
+        node = nodes[row.id]
+        parent = nodes.get(row.parent_id)
+
+        # 父级id
+        if row.parent_id == 0:
+            continue
+        elif parent is not None:
+            roots.append(node)
+        else:
+            parent.children.append(node)
+
+    return roots
+
+
 def get_menu_by_id(db: Session, menu_id: int) -> Optional[Menu]:
     """按主键查找菜单。"""
     return db.query(Menu).filter(Menu.id == menu_id).first()

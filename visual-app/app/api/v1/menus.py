@@ -15,6 +15,12 @@ def get_menu_list(db: Session = Depends(get_db)):
     return success(data=menu_service.get_menu_tree(db))
 
 
+@router.get("/tree", response_model=ResponseModel[list[MenuTreeResponse]])
+def get_menu_list(db: Session = Depends(get_db)):
+    """获取递归树形菜单列表，children 包含下级菜单。"""
+    return success(data=menu_service.get_menu_tree_extra_parent_zero(db))
+
+
 @router.post("", response_model=ResponseModel[MenuResponse], status_code=status.HTTP_201_CREATED)
 def create_menu(payload: MenuCreate, db: Session = Depends(get_db)):
     """新增菜单。"""
@@ -27,9 +33,9 @@ def create_menu(payload: MenuCreate, db: Session = Depends(get_db)):
 
 @router.patch("/{menu_id}/visibility", response_model=ResponseModel[MenuResponse])
 def update_menu_visibility(
-    menu_id: int,
-    payload: MenuVisibilityUpdate,
-    db: Session = Depends(get_db),
+        menu_id: int,
+        payload: MenuVisibilityUpdate,
+        db: Session = Depends(get_db),
 ):
     """启用或关闭菜单；关闭只更新 visible，不删除记录。"""
     menu = menu_service.update_menu_visibility(db, menu_id, payload.visible)

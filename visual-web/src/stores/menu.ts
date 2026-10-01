@@ -19,12 +19,20 @@ export const useMenuStore = defineStore('menu', () => {
         }
     }
 
+    const opreateMenu = computed(() => {
+        return menuList.value.flatMap(element => {
+            // 兼容children为null/undefined的情况，没有子菜单返回空数组
+            return element.children ?? []
+        })
+    })
+
     const workbenchMenuList = computed(() => {
-        return menuList.value.filter((menu) => menu.menu_type === 1)
+       
+        return opreateMenu.value.filter((menu) => menu.menu_type === 1)
     })
 
     const visualMenuList = computed(() => {
-        return menuList.value.filter((menu) => menu.menu_type === 2)
+        return opreateMenu.value.filter((menu) => menu.menu_type === 2)
     })
 
 

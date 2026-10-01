@@ -4,201 +4,233 @@
             <div class="query-box">
                 <el-form :inline="true" :model="queryForm">
                     <el-form-item label="文件名称">
-                        <el-input v-model="queryForm.name" />
+                        <el-input v-model="queryForm.fileName" />
                     </el-form-item>
                     <el-form-item label="文件类型" style="width: 240px">
-                        <el-select>
+                        <el-select v-model="queryForm.fileType">
                             <el-option value="1" label="img"></el-option>
                             <el-option value="2" label="zip"></el-option>
                             <el-option value="3" label="pdf"></el-option>
                         </el-select>
                     </el-form-item>
                     <el-form-item label="">
-                        <el-button type="primary">查 询</el-button>
+                        <el-button type="primary" @click="query">查 询</el-button>
                     </el-form-item>
                 </el-form>
             </div>
             <div class="table-box">
-                <el-table :data="paginatedTableData" style="height: 100%;" border align="center" header-align="center">
-                    <el-table-column label="序号" type="index" :index="getRowIndex" width="100"></el-table-column>
-                    <el-table-column label="文件名称" prop="name"></el-table-column>
-                    <el-table-column label="文件类型" prop="type"></el-table-column>
-                    <el-table-column label="文件描述" prop="remark"></el-table-column>
+                <el-table :data="tabelData" style="height: 100%;" border align="center" header-align="center">
+                    <el-table-column label="序号" type="index" width="60"></el-table-column>
+                    <el-table-column label="文件名称" prop="fileName" show-overflow-tooltip></el-table-column>
+                    <el-table-column label="文件类型" prop="fileType" width="100"></el-table-column>
+                    <el-table-column label="文件大小" prop="fileSize" width="100"
+                        :formatter="formatFileSize"></el-table-column>
+                    <el-table-column label="上传用户" prop="uploadUser" width="100"></el-table-column>
+                    <el-table-column label="上传时间" prop="uploadTime"></el-table-column>
+
+                    <el-table-column label="文件描述" prop="remark" width="150" show-overflow-tooltip></el-table-column>
+                    <el-table-column label="操 作" width="150" fixed="right">
+                        <template #default="scope">
+                            <el-button link type="primary" @click="downlaod(scope.row.id)">下 载</el-button>
+                            <el-button link type="danger">删 除</el-button>
+                        </template>
+                    </el-table-column>
                 </el-table>
             </div>
-            <el-pagination class="table-pagination" :current-page="pagination.currentPage"
-                :page-size="pagination.pageSize" :page-sizes="[2, 5, 10, 20]" :total="tableData.length"
-                layout="total, sizes, prev, pager, next, jumper" @current-change="handleCurrentChange"
-                @size-change="handleSizeChange" />
+            <el-pagination class="table-pagination" :current-page="queryForm.page" :page-size="queryForm.pageSize"
+                :page-sizes="[5, 10, 20, 50, 100]" :total="total" layout="total, sizes, prev, pager, next, jumper"
+                @current-change="handleCurrentChange" @size-change="handleSizeChange" />
         </div>
         <div class="upload-page">
             <div class="title-content">文件上传</div>
-            <el-upload class="avatar-uploader" :auto-upload="false" :show-file-list="false"
-                :on-change="beforeAvatarUpload">
-                <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <el-upload class="avatar-uploader" :auto-upload="false" :show-file-list="false" :on-change="handleChange">
+                <div class="upload-wrapper">
+                    <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+                </div>
             </el-upload>
-            <el-button type="primary" @click="hanleFile">上 传</el-button>
+
+            <div class="upload-list">
+                <transition-group name="file-item">
+                    <div class="upload-item" v-for="(value, index) in fileReadyList" :key="value.uid">
+                        <!-- 序号 -->
+                        <span class="file-index">{{ index + 1 }}</span>
+
+                        <!-- 文件名称 + tooltip 悬浮展示全名 -->
+                        <el-tooltip :content="value.name" effect="dark" placement="top" :show-after="300">
+                            <span class="file-content">{{ value.name }}</span>
+                        </el-tooltip>
+
+                        <!-- 右侧图标组，整体居右 -->
+                        <div class="file-action">
+                            <el-icon class="icon-close" @click="removeItem(value.uid)">
+                                <CloseBold />
+                            </el-icon>
+                            <el-icon class="icon-upload" @click="hanleFile(value)">
+                                <Upload />
+                            </el-icon>
+                        </div>
+                    </div>
+                </transition-group>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { tableApi } from '@/api/table';
-import { computed, ref } from 'vue'
-import { ElMessage } from 'element-plus'
-import type { UploadProps } from 'element-plus'
+import { onMounted, ref } from 'vue'
+import { ElNotification } from 'element-plus'
+import type { UploadProps, UploadFile } from 'element-plus'
+import { fileApi, formatFileSize, type FileItem, type queryFile } from '.';
+import { downloadBlobFile, getFileNameFromHeader } from '@/utils/util';
 
-/** 当前页面展示的文件记录。 */
-interface FileRecord {
-    name: string
-    type: number
-    remark: string
-}
 
-/** 本地分页使用的页码与每页条数。 */
-interface PaginationState {
-    currentPage: number
-    pageSize: number
-}
-
-/* ===========查询域=========== */
-const queryForm = {
-    name: '',
-    type: 0
-}
-
-/* ===========表格域=========== */
-const tableData: FileRecord[] = [
-    {
-        name: '前端开发简历.pdf',
-        type: 3,
-        remark: '这是我的职业简历'
-    },
-    {
-        name: 'offer.img',
-        type: 1,
-        remark: '这是我收到的高薪offer'
-    },
-    {
-        name: '前端开发简历.pdf',
-        type: 3,
-        remark: '这是我的职业简历'
-    },
-    {
-        name: '前端开发简历.pdf',
-        type: 3,
-        remark: '这是我的职业简历'
-    },
-    {
-        name: '前端开发简历.pdf',
-        type: 3,
-        remark: '这是我的职业简历'
-    },
-]
-
-const pagination = ref<PaginationState>({
-    currentPage: 1,
-    pageSize: 2
+/* ===========查询域 and 表格域=========== */
+const queryForm = ref<queryFile>({
+    fileName: '',
+    fileType: '',
+    page: 1,
+    pageSize: 10
 })
 
-/** 根据当前页码和每页条数，截取表格需要显示的数据。 */
-const paginatedTableData = computed(() => {
-    const startIndex = (pagination.value.currentPage - 1) * pagination.value.pageSize
-    return tableData.slice(startIndex, startIndex + pagination.value.pageSize)
+const tabelData = ref<FileItem[]>([])
+const total = ref(0)
+
+const query = async () => {
+    try {
+        const response = await fileApi.getFiles({})
+        tabelData.value = response.list
+        total.value = response.total
+    } catch (err) {
+        console.log(err);
+        tabelData.value = []
+        total.value = 0
+    }
+
+}
+
+onMounted(() => {
+    query()
 })
 
 /** 切换页码时更新当前页。 */
 const handleCurrentChange = (page: number): void => {
-    pagination.value.currentPage = page
+    queryForm.value.page = page
+    query()
 }
 
 /** 改变每页条数后回到第一页，避免当前页超出新页数范围。 */
 const handleSizeChange = (pageSize: number): void => {
-    pagination.value.pageSize = pageSize
-    pagination.value.currentPage = 1
+    queryForm.value.pageSize = pageSize
+    queryForm.value.page = 1
+    query()
 }
 
-/** 让序号在不同分页之间保持连续。 */
-const getRowIndex = (index: number): number => {
-    return (pagination.value.currentPage - 1) * pagination.value.pageSize + index + 1
+const downlaod = async (id: number) => {
+    try {
+
+        const response = await fileApi.downloadBlobFile(id)
+
+        const disposition = String(
+            response.headers?.['content-disposition'] ?? ''
+        )
+
+        const fileName = getFileNameFromHeader(disposition) || '未命名文件'
+
+        downloadBlobFile(response.data, fileName)
+
+
+    } catch (err) {
+        console.log(err);
+    }
 }
 
-
-
-
-
-
-
-
-
-
-const imageUrl = ref('')
+/* ===========文件上传部分=========== */
 
 const fileValue = ref<File>()
 
-const handleAvatarSuccess: UploadProps['onSuccess'] = (
-    response,
-    uploadFile
-) => {
-    imageUrl.value = URL.createObjectURL(uploadFile.raw!)
+const fileReadyList = ref<UploadFile[]>([])
+
+
+const handleChange: UploadProps['onChange'] = (uploadFile) => {
+    fileReadyList.value.push(uploadFile)
 }
 
+/**
+ * 移除不需要上传的文件
+ */
+const removeItem = (uid: number) => {
 
-const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
-    console.log(rawFile);
-    fileValue.value = rawFile.raw
-    return true
+    fileReadyList.value = fileReadyList.value.filter(e => e.uid != uid)
 
-    if (rawFile.type !== 'image/jpeg') {
-        ElMessage.error('Avatar picture must be JPG format!')
-        return false
-    } else if (rawFile.size / 1024 / 1024 > 2) {
-        ElMessage.error('Avatar picture size can not exceed 2MB!')
-        return false
+}
+
+const hanleFile = async (params: UploadFile) => {
+    try {
+        const res = await tableApi.upload(params.raw!)
+        if (res.code == 0) {
+            ElNotification({
+                title: '成功',
+                type: 'success',
+                message: res.message,
+                duration: 6000,
+            })
+            removeItem(params.uid)
+        }
+    } catch (err) {
+
+        console.log(err);
+    } finally {
+        query()
     }
-    return true
-}
 
-const hanleFile = () => {
 
-    tableApi.upload(fileValue.value!)
 }
 
 </script>
 
 <style lang="scss" scoped>
 .upload-page {
-    width: 240px;
+    width: 320px;
     margin-left: 10px;
     border: 3px dashed #dfdff5;
     border-radius: 7px;
-
     display: flex;
     flex-direction: column;
     align-items: center;
+    background: #f4f4ff;
 
     .title-content {
-
         height: 40px;
         width: 100%;
         line-height: 40px;
         font-weight: 600;
         text-align: left;
         padding-left: 20px;
+        background: #FFF;
     }
 
     .avatar-uploader {
-        width: 200px;
+        width: 300px;
         height: 120px;
         border: 1px solid;
         text-align: center;
         line-height: 120px;
-        background: #f4f4ff;
+        background: #FFF;
         border: 1px dashed #f4f4ff;
         border-radius: 5px;
+        margin: 10px 0;
+        font-size: 45px;
+        color: #a394ea;
 
-        &:hover {
-            cursor: pointer;
+        :deep(.el-upload) {
+            width: 100%;
+            height: 100%;
+
+            .upload-wrapper {
+                height: 100%;
+                width: 100%;
+            }
         }
     }
 }
@@ -218,5 +250,88 @@ const hanleFile = () => {
         flex: 1;
         overflow: hidden;
     }
+}
+
+
+.upload-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 300px;
+}
+
+.upload-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    /* 加大内边距，高度拉高，不再短小 */
+    padding: 14px 18px;
+    border-radius: 10px;
+    /* 默认背景色，不是纯白 */
+    background-color: #FFF;
+    border: 1px solid transparent;
+    transition: all 0.24s ease;
+}
+
+.file-index {
+    flex: 0 0 28px;
+    color: #606266;
+    text-align: center;
+    font-size: 15px;
+}
+
+.file-content {
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: #303133;
+    font-size: 15px;
+}
+
+.file-action {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 16px;
+}
+
+.icon-close {
+    font-size: 18px;
+    color: #909399;
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+        color: #f56c6c;
+    }
+}
+
+.icon-upload {
+    font-size: 18px;
+    color: #909399;
+    cursor: pointer;
+    transition: color 0.2s;
+
+    &:hover {
+        color: #7b61ff;
+    }
+}
+
+/* transition-group 动画class */
+.file-item-enter-from,
+.file-item-leave-to {
+    opacity: 0;
+    transform: translateX(-12px);
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.file-item-enter-active,
+.file-item-leave-active {
+    transition: all 0.24s ease;
 }
 </style>

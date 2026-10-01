@@ -39,6 +39,11 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/d-table/index.vue')
       },
       {
+        path: 'd-chart',
+        name: 'd-chart',
+        component: () => import('@/views/d-chart/index.vue')
+      },
+      {
         path: 'd-chat',
         name: 'd-chat',
         component: () => import('@/views/d-chat/index.vue')
