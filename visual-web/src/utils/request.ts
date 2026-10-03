@@ -6,6 +6,7 @@ import axios, {
 } from 'axios'
 import { config } from '@/utils/config'
 import type { ApiResponse } from '@/types/types.ts'
+import { ElNotification } from 'element-plus'
 
 /**
  * 创建 Axios 实例
@@ -45,8 +46,21 @@ instance.interceptors.request.use(
 instance.interceptors.response.use(
     (response: AxiosResponse) => {
 
+        /*
+        定义逻辑
+        对于 新增201 修改200在这里弹窗 删除成功204
+        */
         const res = response.data
+        if (res.code == 201 || res.code == 200 || res.code == 204) {
+            ElNotification({
+                title: '成功',
+                type: 'success',
+                message: res.message,
+                duration: 6000,
+            })
+        }
 
+        /* 下载时 传回来的数据需要全部response处理 */
         if (response.config.responseType === 'blob') {
             return response
         }
@@ -56,7 +70,7 @@ instance.interceptors.response.use(
             return response.data
         }
 
-        // 业务成功
+        /* 获取数据时 响应数据只需要把data传给接口处理即可 */
         if (res.code === config.successCode) {
             return res.data
         }

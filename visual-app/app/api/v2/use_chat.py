@@ -18,16 +18,16 @@ if not ERNIE_API_KEY:
 
 router = APIRouter(prefix="/mock", tags=["mock"])
 
-
-
 # 启动前执行：export QIANFAN_API_KEY="your_key_here"
 client = OpenAI(
     api_key=ERNIE_API_KEY,
     base_url="https://qianfan.baidubce.com/v2",  # 千帆 v2 接口地址 [citation:1]
 )
 
+
 class ChatRequest(BaseModel):
     messages: list
+
 
 @router.post("/chat", response_model=ResponseModel)
 async def chat(request: ChatRequest):
@@ -40,7 +40,6 @@ async def chat(request: ChatRequest):
                 messages=request.messages,
                 stream=True,
             )
-
 
             for chunk in stream:
                 delta = chunk.choices[0].delta

@@ -10,8 +10,8 @@ export interface Message {
  * @param  message类型传递给后端模型数据
  * @returns 
  */
-function chatAiWorld(params: { messages: Message[] }): Promise<Response> {
-    return fetch('/api/v2/mock/chat', {
+function chatAiWorld(params: { conversation_id: number, messages: Message[] }): Promise<Response> {
+    return fetch('/api/v2/chat', {
         method: 'POST',
         headers: {
             'Content-type': 'application/json'
@@ -28,7 +28,7 @@ export const useChat = () => {
     const aiContent = ref('')
     const isGenerating = ref(false)
 
-    async function sendMessage(userInput: string) {
+    async function sendMessage(userInput: string, conversation_id: number) {
         /* 用户输入为空 或者 正在生成中 都不执行方法 */
         if (!userInput.trim() || isGenerating.value) return
 
@@ -40,9 +40,7 @@ export const useChat = () => {
 
         try {
 
-
-
-            const response = await chatAiWorld({ messages: messages.value })
+            const response = await chatAiWorld({ conversation_id: conversation_id, messages: messages.value })
 
             if (!response.ok) throw new Error(`HTTP ERROR ${response.status}`)
 

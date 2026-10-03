@@ -1,16 +1,33 @@
 <template>
   <div class="con-page">
-    <div class="nav-page"></div>
+    <div class="nav-page">
+      <div>
+        <div class="start-chat" @click="addConversation">
+
+          <el-icon>
+            <CirclePlus />
+          </el-icon>
+
+          <span>
+            开启新对话
+          </span>
+
+        </div>
+
+      </div>
+      <div class="chat-con">
+        <div class="chat-item" v-for="value in ConversationList" :key="value.id"
+          :class="{ 'is-active': activeId == value.id }" @click="activeId = value.id">
+          {{ value.title }}
+        </div>
+      </div>
+    </div>
     <div class="chat-container">
       <!-- 消息列表 -->
       <div class="message-list" ref="listRef">
-        <div
-          v-for="(msg, index) in messages"
-          :key="index"
-          :class="['message', msg.role]"
-        >
-         
-          <Avatar :type="msg.role==='user'?'user':'ai'"></Avatar>
+        <div v-for="(msg, index) in messages" :key="index" :class="['message', msg.role]">
+
+          <Avatar :type="msg.role === 'user' ? 'user' : 'ai'"></Avatar>
           <div class="bubble">{{ msg.content }}</div>
         </div>
 
@@ -26,13 +43,8 @@
 
       <!-- 输入区 -->
       <div class="input-area">
-        <textarea
-          v-model="input"
-          placeholder="输入消息，Enter 发送，Shift+Enter 换行"
-          @keydown.enter.exact.prevent="handleSend"
-          :disabled="isGenerating"
-          rows="2"
-        />
+        <textarea v-model="input" placeholder="输入消息，Enter 发送，Shift+Enter 换行" @keydown.enter.exact.prevent="handleSend"
+          :disabled="isGenerating" rows="2" />
         <button @click="handleSend" :disabled="isGenerating || !input.trim()">
           {{ isGenerating ? '生成中...' : '发送' }}
         </button>
@@ -42,10 +54,60 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, watch } from 'vue'
+import { ref, nextTick, watch, onMounted } from 'vue'
 import { useChat } from './index.ts'
+import { chatApi, type ConversationItem } from '@/api/chat.ts'
 import Avatar from '@/components/Avatar.vue'
+/* ==============侧边栏部分============== */
+const ConversationList = ref<ConversationItem[]>([])
 
+const activeId = ref<number>(0)
+
+/* 获取侧边栏会话数据 */
+const query = async () => {
+  try {
+    ConversationList.value = await chatApi.getChat()
+    if (ConversationList.value.length > 0) {
+      activeId.value = ConversationList.value[0]?.id!
+    }
+  } catch (err) {
+    console.log(err);
+  }
+
+}
+
+/* 新增会话 */
+const addConversation = async () => {
+  try {
+    await chatApi.addChat()
+    query()
+    aiContent.value = ''
+  } catch (err) {
+    console.log(err);
+  }
+
+
+}
+
+/* 查询会话中数据 */
+const queryMessage = async () => {
+  try {
+    messages.value = await chatApi.getMessage(activeId.value)
+    scrollToBottom()
+  } catch (err) {
+    console.log(err);
+  }
+
+}
+
+
+onMounted(() => {
+  query()
+})
+
+
+watch(activeId, queryMessage)
+/* ==============对话部分============== */
 const { messages, aiContent, isGenerating, sendMessage } = useChat()
 
 const input = ref('')
@@ -56,7 +118,7 @@ async function handleSend() {
   if (!text || isGenerating.value) return
 
   input.value = ''
-  await sendMessage(text)
+  await sendMessage(text, activeId.value)
   scrollToBottom()
 }
 
@@ -70,13 +132,62 @@ function scrollToBottom() {
 
 // 流式输出时自动滚到底部
 watch(aiContent, scrollToBottom)
+
 </script>
 
 <style scoped lang="scss">
-.nav-page{
+.start-chat {
+  height: 40px;
+  box-sizing: border-box;
+  border-radius: 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+
+  &:hover {
+    cursor: pointer;
+    color: #3964fe;
+  }
+}
+
+
+.nav-page {
   width: 160px;
   height: 100%;
-  border: 1px solid #EEE;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: hidden;
+
+  .chat-con {
+    flex: 1;
+    height: 100%;
+
+    .chat-item {
+      height: 40px;
+      line-height: 40px;
+      border-radius: 5px;
+      padding-left: 10px;
+      box-sizing: border-box;
+      background-color: rgba(245, 245, 245, 0.5);
+      margin-bottom: 5px;
+
+      &:hover {
+        background-color: #e4edfd;
+        cursor: pointer;
+        color: #3964fe;
+      }
+    }
+
+    .is-active {
+      background-color: #e4edfd;
+      color: #3964fe;
+    }
+  }
 }
 
 
@@ -96,17 +207,21 @@ watch(aiContent, scrollToBottom)
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+
   &::-webkit-scrollbar {
     width: 8px;
   }
+
   &::-webkit-scrollbar-track {
-    background: rgba(255,255,255,0.08);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 4px;
   }
+
   &::-webkit-scrollbar-thumb {
     background: rgba(52, 145, 233, 0.45);
-    border-radius:4px;
-    &:hover{
+    border-radius: 4px;
+
+    &:hover {
       background: rgba(25, 142, 252, 0.75);
     }
   }
@@ -160,7 +275,9 @@ watch(aiContent, scrollToBottom)
 }
 
 @keyframes blink {
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 
 .input-area {

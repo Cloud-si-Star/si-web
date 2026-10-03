@@ -1,4 +1,4 @@
-/* 后端统一约定响应体 */
+/* 后端统一约定响应体 T本质上是都可以  也可以是数组*/
 export interface ApiResponse<T = unknown> {
     code: number,
     message: string

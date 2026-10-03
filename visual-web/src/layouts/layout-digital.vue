@@ -21,9 +21,9 @@ import digitalMenu from './digital-menu.vue';
   box-sizing: border-box;
 
   .menu-con {
-    width: 160px;
+    width: 180px;
     height: 100%;
-    border: 1px solid #EEE;
+    box-sizing: border-box;
   }
 }
 

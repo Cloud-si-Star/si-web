@@ -1,10 +1,7 @@
 <template>
   <!-- 外层div包裹，控制宽高，菜单继承 -->
   <div class="menu-wrap">
-    <div class="logo-box" @click="$router.push('/v-visual')">
-      <vlogo></vlogo>
-      <span>数智工作台</span>
-    </div>
+    <vLogoRoute></vLogoRoute>
     <!-- 侧边菜单，背景白色 -->
     <el-menu :default-active="activeRoute" router background-color="#ffffff" text-color="#333333"
       active-text-color="#1890ff" @select="handleMenuSelect">
@@ -21,7 +18,7 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useMenuStore } from '@/stores/menu.ts'
-import vlogo from '@/components/v-logo.vue'
+import vLogoRoute from './v-logoRoute.vue'
 
 const route = useRoute()
 // 当前激活菜单，自动根据路由高亮
@@ -37,31 +34,28 @@ const handleMenuSelect = (key: string) => {
 </script>
 
 <style scoped>
-.logo-box {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  height: 45px;
-}
-
 .menu-wrap {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
+  overflow: hidden;
+
+  :deep(.el-menu-item) {
+    font-size: 16px;
+  }
 }
 
 .menu-wrap :deep(.el-menu) {
   width: inherit;
   height: calc(100% - 45px);
   border-right: none;
+
 }
 
 /* 自定义hover样式，覆盖element默认 */
 :deep(.el-menu-item:hover) {
   background-color: #f0f7ff !important;
+  color: #1890ff;
 }
 
 :deep(.el-menu-item.is-active) {
