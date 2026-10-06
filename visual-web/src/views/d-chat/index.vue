@@ -59,6 +59,10 @@ import { useChat } from './index.ts'
 import { chatApi, type ConversationItem } from '@/api/chat.ts'
 import Avatar from '@/components/Avatar.vue'
 /* ==============侧边栏部分============== */
+
+
+
+
 const ConversationList = ref<ConversationItem[]>([])
 
 const activeId = ref<number>(0)
@@ -80,7 +84,7 @@ const query = async () => {
 const addConversation = async () => {
   try {
     await chatApi.addChat()
-    query()
+    await query()
     aiContent.value = ''
   } catch (err) {
     console.log(err);
@@ -113,9 +117,15 @@ const { messages, aiContent, isGenerating, sendMessage } = useChat()
 const input = ref('')
 const listRef = ref<HTMLElement | null>(null)
 
+
 async function handleSend() {
   const text = input.value.trim()
   if (!text || isGenerating.value) return
+
+  /* 如果左边一个数据没有 那么发送消息前请求新增 */
+  if (ConversationList.value.length == 0) {
+    await addConversation()
+  }
 
   input.value = ''
   await sendMessage(text, activeId.value)

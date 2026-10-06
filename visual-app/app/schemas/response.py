@@ -24,6 +24,7 @@ def success(data: Any = None, message: str = "success") -> ResponseModel:
     成功响应
 
     Args:
+        code 状态码 新增201 修改200 删除成功204
         data: 响应数据
         message: 响应消息
 

@@ -30,17 +30,6 @@ const westerosTheme: EChartsOption = {
         "symbol": "emptyCircle",
         "smooth": true
     },
-    "radar": {
-        "itemStyle": {
-            "borderWidth": "2"
-        },
-        "lineStyle": {
-            "width": "2"
-        },
-        "symbolSize": "6",
-        "symbol": "emptyCircle",
-        "smooth": true
-    },
     "bar": {
         "itemStyle": {
             "barBorderWidth": 0,
@@ -66,10 +55,7 @@ const westerosTheme: EChartsOption = {
         }
     },
     "parallel": {
-        "itemStyle": {
-            "borderWidth": 0,
-            "borderColor": "#ccc"
-        }
+
     },
     "sankey": {
         "itemStyle": {
