@@ -238,3 +238,28 @@ def get_ai_list(
 ):
     """分页查询 AI 信息列表"""
     return ai_service.get_ai_list(db, cond)
+
+
+@router.post("/batch", response_model=ResponseModel)
+def create_ai_status(db: Session = Depends(get_db)):
+    ai_service.create_ai_use_distribution(db)
+    return success(data={"code": 0, "message": "没有报错"})
+
+
+@router.get("/use", response_model=ResponseModel)
+def back_ai_use_distrition(db: Session = Depends(get_db)):
+    rows = ai_service.sql_fetch_ai_use_total_grounp_by_province(db)
+
+    return success(data=rows)
+
+
+@router.get("/detail/{province_id}", response_model=ResponseModel, description="省份中模型使用分布")
+def back_ai_use_distrition_by_province(province_id: int, db: Session = Depends(get_db)):
+    rows = ai_service.use_total_by_province_id(province_id, db)
+    return success(data=rows)
+
+
+@router.post("/add-province", response_model=ResponseModel, description="将省份写入数据库")
+def back_once(provinceIds: list[dict], db: Session = Depends(get_db)):
+    ai_service.province_type_id(provinceIds, db)
+    return success()

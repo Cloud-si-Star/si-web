@@ -1,10 +1,11 @@
 <template>
     <main class="screen-page">
+        <!--
         <header class="screen-header">
             <div class="brand-mark" aria-hidden="true">CN</div>
             <div class="header-copy">
                 <p class="eyebrow">REGIONAL DATA OVERVIEW</p>
-                <h1>全国数据运行总览</h1>
+                <h1>全国模型数据运行总览</h1>
             </div>
             <div class="header-meta">
                 <span class="live-dot"></span>
@@ -12,9 +13,10 @@
                 <time>{{ currentTime }}</time>
             </div>
         </header>
+        -->
 
         <section class="dashboard-grid">
-            <SvgBorder class="map-panel" title="全国区域分布" title-position="top-left" color="#126b83" light-color="#57f3e5"
+            <SvgBorder class="map-panel" title="" title-position="top-left" color="#126b83" light-color="#57f3e5"
                 :stroke-width="1.4" :duration="4.5">
                 <div class="map-content">
                     <div class="map-heading">
@@ -25,26 +27,10 @@
                         <div class="map-legend"><i></i> 活跃指数</div>
                     </div>
                     <div class="map-stage">
-                        <vCommon :option="mapOption" />
+                        <vPolar :map-item-data="scatterData" />
                         <div class="map-caption">数据覆盖 <strong>34</strong> 个省级行政区</div>
                     </div>
-                    <div class="metric-strip">
-                        <div class="metric-item">
-                            <span>今日访问量</span>
-                            <strong>2,486,391</strong>
-                            <small>较昨日 <b>+12.8%</b></small>
-                        </div>
-                        <div class="metric-item">
-                            <span>活跃城市</span>
-                            <strong>286</strong>
-                            <small>覆盖率 <b>91.4%</b></small>
-                        </div>
-                        <div class="metric-item">
-                            <span>平均响应</span>
-                            <strong>126<em>ms</em></strong>
-                            <small>服务状态 <b>稳定</b></small>
-                        </div>
-                    </div>
+
                 </div>
             </SvgBorder>
 
@@ -74,12 +60,47 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { EChartsOption } from 'echarts'
 import SvgBorder from '@/components/SvgBorder.vue'
 import vCommon from '@/components/v-common.vue'
+import vPolar from '@/components/v-polar.vue'
 import chinaMap from '@/assets/maps/china.json'
 import { echartsKey } from '@/types/keys'
+import { chartsApi, PROVINCE_CENTER, handlerScatter } from '@/api/charts'
+
+interface mapItem {
+    name: string,
+    value: number
+}
+
+interface ChartExpose {
+    initChart: () => void
+    resizeChart: () => void
+}
+
+const mapRef = ref<ChartExpose>()
+
+const scatterData = ref<mapItem[]>([])
+
+/* 挂载后获取省份数据 */
+const query_province_total = async () => {
+    try {
+        const response = await chartsApi.getProvinceTotalDistrition()
+        scatterData.value = response.map((tt) => {
+            return {
+                name: tt.aiUseProvince,
+                value: tt.aiUseTotal
+            }
+        })
+
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+
+
 
 interface RegionActivity {
     name: string
@@ -94,6 +115,12 @@ if (!echarts) {
 
 // 注册本地省级 GeoJSON，保证地图不依赖运行时网络请求。
 echarts.registerMap('china-regions', chinaMap as Parameters<typeof echarts.registerMap>[1])
+
+
+onMounted(() => {
+    query_province_total()
+})
+
 
 const regions: RegionActivity[] = [
     { name: '广东', value: 96 },
@@ -140,6 +167,7 @@ const mapOption: EChartsOption = {
         borderColor: 'rgba(87, 243, 229, 0.55)',
         textStyle: { color: '#e7fbff' },
         formatter: (params) => {
+            console.log(params);
             const item = Array.isArray(params) ? params[0] : params
             return `${item?.name ?? '区域'}<br/>活跃指数：${item?.value ?? '暂无数据'}`
         },
@@ -150,16 +178,15 @@ const mapOption: EChartsOption = {
         max: 100,
         inRange: { color: ['#102b3a', '#145467', '#168b91', '#66e6d3'] },
     },
-    series: [{
-        name: '区域活跃度',
-        type: 'map',
+    geo: {
         map: 'china-regions',
         roam: true,
+        label: {
+            show: false,
+        },
         scaleLimit: { min: 0.8, max: 3 },
         zoom: 1.08,
-        top: '5%',
-        bottom: '8%',
-        data: regions,
+
         itemStyle: {
             borderColor: 'rgba(135, 240, 234, 0.64)',
             borderWidth: 0.8,
@@ -171,8 +198,40 @@ const mapOption: EChartsOption = {
             label: { show: true, color: '#f2ffff', fontSize: 11 },
             itemStyle: { areaColor: '#36b9ad', borderColor: '#b5fff4', borderWidth: 1.2 },
         },
-        label: { show: false },
-    }],
+
+
+    },
+    series: [
+        {
+            name: '区域活跃度',
+            type: 'map',
+            map: 'china-regions',
+            geoIndex: 0, // ★ 关键：复用上面那个 geo，不重画底图
+            roam: true,
+            data: scatterData.value,
+        },
+        {
+            type: 'scatter',
+            coordinateSystem: 'geo',
+            geoIndex: 0,
+            encode: {
+                // `2` is the dimension index of series.data
+                tooltip: 2,
+                label: 2
+            },
+            data: [
+                [127.693027, 48.040465, 14523],
+                [127.693027, 48.040465, 14523],
+                [106.278179, 38.46637, 14523],
+
+            ],
+            itemStyle: {
+                color: '#66c2a5',
+                borderWidth: 1,
+                borderColor: '#3c7865'
+            }
+        },
+    ],
 }
 
 const trendOption: EChartsOption = {
@@ -377,6 +436,7 @@ onBeforeUnmount(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    position: absolute;
 }
 
 .map-heading h2 {

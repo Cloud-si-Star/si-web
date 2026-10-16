@@ -44,3 +44,20 @@ class AiInfoUpdate(CamelModel):
     remark: str | None = None
     ai_use: int | None = None
     ai_status: str | None = None
+
+
+class AiUseByProvince(CamelModel):
+    ai_use_total: int
+    ai_use_province: str
+    ai_use_province_id: int
+
+
+class AiUseByProvinceId(CamelModel):
+    ai_label: str
+    ai_id: int
+    ai_use_total: int
+
+
+class ProvinceChemas(CamelModel):
+    name: str
+    adcode: int

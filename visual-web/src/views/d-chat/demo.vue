@@ -1,45 +1,30 @@
 <template>
     <div class="con-page">
-        <div class="nav-page">
-
-        </div>
-
-        <div>
-
-        </div>
+        <vVirtual :list="arr"></vVirtual>
     </div>
 </template>
 
-
 <script setup lang="ts">
-import { useChat } from './index';
-import { ref, watch,nextTick } from 'vue';
+import { onMounted } from 'vue';
+import vVirtual from '@/components/v-virtual.vue';
 
-const {messages,aiContent,isGenerating,sendMessage} = useChat()
-
-const input = ref('')
-const listRef = ref<HTMLElement |null >(null)
-
-async function handleSend(){
-    const text=input.value.trim()
-
-    if(!text ||isGenerating.value) return
-
-    input.value=''
-
-    await sendMessage(text)
-
-    scrollToBottom()
-}
-
-function scrollToBottom(){
-    nextTick(()=>{
-        if(listRef.value){
-            listRef.value.scrollTop = listRef.value.scrollHeight
-        }
-    })
-}
+const arr = Array.from({ length: 20 }, (_, i: number) => ({
+    id: i + 1,
+    name: `这是一条长文字数据，这是第${i}条，共10条`
+}))
 
 
-watch(aiContent,scrollToBottom)
+onMounted(() => {
+    console.log(arr);
+})
 </script>
+
+<style lang="scss" scoped>
+.virtual-box {
+    box-sizing: border-box;
+    height: 200px;
+    width: 400px;
+    background-color: rgba(127, 255, 212, 0.3);
+    overflow: auto;
+}
+</style>

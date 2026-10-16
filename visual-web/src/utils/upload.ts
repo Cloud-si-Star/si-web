@@ -92,3 +92,15 @@ export function debounce(fn: (...args: any[]) => {}, delay: number) {
         }, delay)
     }
 }
+
+
+export function throllte(fn: (...args: any[]) => void, interval: number) {
+    let lastTime = 0
+    return (...args: any[]) => {
+        const now = Date.now()
+        if (now - lastTime >= interval) {
+            fn(...args)
+            lastTime = now
+        }
+    }
+}

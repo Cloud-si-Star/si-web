@@ -46,7 +46,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'd-chat',
         name: 'd-chat',
-        component: () => import('@/views/d-chat/index.vue')
+        component: () => import('@/views/d-chat/demo.vue')
       },
       {
         path: 'd-drag',

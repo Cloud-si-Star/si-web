@@ -185,6 +185,9 @@ watch(aiContent, scrollToBottom)
       box-sizing: border-box;
       background-color: rgba(245, 245, 245, 0.5);
       margin-bottom: 5px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
 
       &:hover {
         background-color: #e4edfd;

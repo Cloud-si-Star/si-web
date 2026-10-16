@@ -3,8 +3,9 @@ from contextlib import contextmanager
 from typing import Generator
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker, declarative_base
+from app.core.logger import logger
 
 load_dotenv()
 
@@ -26,10 +27,10 @@ engine = create_engine(
     DATABASE_URL,
     echo=False,
     pool_pre_ping=True,
-    pool_size=10,           # 连接池大小
-    max_overflow=20,       # 最大溢出连接数
-    pool_recycle=3600,     # 连接回收时间（秒）
-    pool_timeout=30,       # 获取连接超时时间
+    pool_size=10,  # 连接池大小
+    max_overflow=20,  # 最大溢出连接数
+    pool_recycle=3600,  # 连接回收时间（秒）
+    pool_timeout=30,  # 获取连接超时时间
 )
 
 # 会话工厂
@@ -76,3 +77,18 @@ def get_db_context() -> Generator:
         raise
     finally:
         db.close()
+
+
+@event.listens_for(engine, "handle_error")
+def handle_sql_error(exception_context):
+    """
+    只记录执行失败的 SQL。
+    成功路径不记录，避免生产日志爆炸。
+    """
+    logger.info(
+        "SQL 执行失败: %s | SQL: %s | 参数: %s",
+        exception_context.original_exception,
+        exception_context.statement,
+        exception_context.parameters,
+        exc_info=True,
+    )

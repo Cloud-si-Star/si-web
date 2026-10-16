@@ -36,6 +36,12 @@ window-ae/
 查看数据库指令
 python -m app.scripts.view_database
 
+
+需求分析
+生成模拟数据---》什么样的数据呢
+不如以数据决定
+
+
 ```
 
 

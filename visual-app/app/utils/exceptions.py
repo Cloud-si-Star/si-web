@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.core.logger import logger
+from app.utils.trace import get_short_traceback
 
 __all__ = [
     "BizException",
@@ -113,6 +114,7 @@ def register_exception_handlers(app):
             f"服务器内部错误: {str(exc)}, path={request.url.path}",
             exc_info=True
         )
+
         return JSONResponse(
             status_code=200,
             content={

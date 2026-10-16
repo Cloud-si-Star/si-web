@@ -1,12 +1,16 @@
-from datetime import datetime, time
+import random
+from datetime import datetime, time, timedelta, date
 from typing import Optional
 
-from sqlalchemy import and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 from app.models.ai_info import AiInfo
-from app.schemas.ai_info import AiInfoQuery, AiInfoItem, AiInfoPage, AiInfoUpdate
+from app.models.orders import AIUseDistribution, AiType, Province
+from app.schemas.ai_info import AiInfoQuery, AiInfoItem, AiInfoPage, AiInfoUpdate, AiUseByProvince, AiUseByProvinceId, \
+    ProvinceChemas
+import itertools
 
 
 def _build_query(db: Session, cond: AiInfoQuery):
@@ -215,4 +219,100 @@ def delete_ai_info(db: Session, ai_id: int) -> bool:
 
     logger.info(f"删除 AI 信息成功: ai_id={ai_id}")
 
+    return True
+
+
+def create_ai_use_by_datetime(rows_valid: list[ProvinceChemas], current):
+    ai_ids = [key for key in range(1, 11)]
+    ans = []
+    for char in itertools.product(rows_valid, ai_ids):
+        tt = {
+            'ai_use_province_id': int(char[0].get('adcode')),
+            'ai_use_number': random.randint(10000, 99999),
+            'ai_type_id': char[1],
+            'ai_use_time': current
+        }
+        ans.append(tt)
+
+    return ans
+
+
+def create_ai_use_distribution(db: Session) -> bool:
+    stmt = (
+        select(Province.adcode, Province.name)
+    )
+    rows = db.execute(stmt).all()
+    rows_valid = [{'adcode': char.adcode, 'name': char.name} for char in rows]
+    current = date(2025, 10, 12)
+    count = 1
+    while count < 3:
+        count += 1
+        ans = create_ai_use_by_datetime(rows_valid, current.isoformat())
+        current += timedelta(days=1)
+        db.bulk_insert_mappings(AIUseDistribution, ans)
+        db.commit()
+    return True
+
+
+# 根据省份聚合模型使用数组量
+def sql_fetch_ai_use_total_grounp_by_province(db: Session) -> list[AiUseByProvince]:
+    stmt = (
+        select(
+            AIUseDistribution.ai_use_province_id,
+            Province.name,
+            func.sum(AIUseDistribution.ai_use_number).label('ai_use_total')
+        )
+        .join(Province, AIUseDistribution.ai_use_province_id == Province.adcode)
+        .group_by(
+            AIUseDistribution.ai_use_province_id,
+        )
+    )
+
+    rows = db.execute(stmt).all()
+
+    return [
+        AiUseByProvince(
+            ai_use_total=r.ai_use_total,
+            ai_use_province=r.name,
+            ai_use_province_id=r.ai_use_province_id
+        )
+        for r in rows
+    ]
+
+
+# 根据省份ID聚合每个模型的使用数据量
+def use_total_by_province_id(province_id: int, db: Session) -> list[AiUseByProvinceId]:
+    stmt = (
+        select(
+            AIUseDistribution.ai_type_id,
+            AiType.label,
+            func(AIUseDistribution.ai_use_number).label('ai_use_total')
+        )
+        .join(AiType, AIUseDistribution.ai_type_id == AiType.id)
+        .where(AIUseDistribution.ai_use_province_id == province_id)
+        .group_by(AIUseDistribution.ai_type_id)
+    )
+
+    rows = db.execute(stmt).all()
+    return [
+        AiUseByProvinceId(
+            ai_id=r.ai_type_id,
+            ai_label=r.label,
+            ai_use_total=r.ai_use_total
+        )
+        for r in rows
+    ]
+
+
+def province_type_id(provinceIds: list, db: Session):
+    ans = []
+    for char in provinceIds:
+        ans.append(
+            {
+                'adcode': char.get('adcode'),
+                'name': char.get('name')
+            }
+        )
+    db.bulk_insert_mappings(Province, ans)
+    db.commit()
     return True

@@ -7,6 +7,12 @@ from app.api.v1 import data, menus, chat as chat_conversation
 from app.api.v2 import chat
 from app.utils.exceptions import register_exception_handlers
 
+# 数据库
+from app.core.database import engine, Base
+import app.models.orders
+
+Base.metadata.create_all(bind=engine)
+
 # 应用实例
 app = FastAPI(
     title=settings.app_name,
