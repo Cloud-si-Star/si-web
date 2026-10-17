@@ -61,3 +61,14 @@ class AiUseByProvinceId(CamelModel):
 class ProvinceChemas(CamelModel):
     name: str
     adcode: int
+
+
+class AIbyMonthChemas(CamelModel):
+    province_id: int
+    ai_id: int
+
+
+class AIbyMonthChemasResponse(CamelModel):
+    value: int
+    label: str
+    month: str

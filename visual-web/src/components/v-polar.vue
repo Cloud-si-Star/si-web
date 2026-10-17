@@ -54,7 +54,7 @@ const mapOption = ref<EChartsOption>({
       show: false,
     },
     scaleLimit: { min: 0.8, max: 3 },
-    zoom: 1.5,
+    zoom: 1.25,
     // left: 20,
     // top: 20,
     // right: 20,
@@ -160,6 +160,7 @@ watch(
 
 
 const hanleChartClick = (params: ECElementEvent) => {
+
   emit('chartClick', params)
 }
 

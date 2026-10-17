@@ -27,7 +27,8 @@
                         <div class="map-legend"><i></i> 活跃指数</div>
                     </div>
                     <div class="map-stage">
-                        <vPolar :map-item-data="scatterData" />
+                        <vConChart :base-option="mapOption" :base-setting="mapSetting" @chart-click="map_Query">
+                        </vConChart>
                         <div class="map-caption">数据覆盖 <strong>34</strong> 个省级行政区</div>
                     </div>
 
@@ -35,15 +36,15 @@
             </SvgBorder>
 
             <div class="right-column">
-                <SvgBorder class="chart-panel trend-panel" title="近七日访问趋势" title-position="top-left" color="#126b83"
-                    light-color="#57f3e5" :stroke-width="1.2" :duration="5">
+                <SvgBorder class="chart-panel trend-panel" :title="`${province_name}模型调用详情分布`"
+                    title-position="top-right" color="#126b83" light-color="#57f3e5" :stroke-width="1.2" :duration="5">
                     <div class="chart-content">
                         <div class="chart-summary">
                             <span>累计访问</span>
                             <strong>1,284,620</strong>
                             <b>+8.6%</b>
                         </div>
-                        <vCommon :option="trendOption" />
+                        <vPictorialBar :base-option="barBaseOption" :option-data="optionData" />
                     </div>
                 </SvgBorder>
 
@@ -51,7 +52,8 @@
                     light-color="#57f3e5" :stroke-width="1.2" :duration="5.8">
                     <div class="chart-content rank-content">
                         <div class="rank-note"><span>TOP 8</span><span>访问量 / 万</span></div>
-                        <vCommon :option="rankOption" />
+                        <vConChart :base-option="trendOption" :base-setting="lineSetting">
+                        </vConChart>
                     </div>
                 </SvgBorder>
             </div>
@@ -61,25 +63,88 @@
 
 <script setup lang="ts">
 import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import type { EChartsOption } from 'echarts'
+import type { EChartsOption, ECElementEvent } from 'echarts'
 import SvgBorder from '@/components/SvgBorder.vue'
 import vCommon from '@/components/v-common.vue'
 import vPolar from '@/components/v-polar.vue'
+import vPictorialBar from '@/components/v-PictorialBar.vue'
+
+import vConChart from '@/components/v-con-chart.vue'
+
 import chinaMap from '@/assets/maps/china.json'
 import { echartsKey } from '@/types/keys'
-import { chartsApi, PROVINCE_CENTER, handlerScatter } from '@/api/charts'
+import { chartsApi, PROVINCE_CENTER, back_province_name, type DetailItem, type queryLine } from '@/api/charts'
 
+
+/* =================右侧上方图表数据部分================= */
 interface mapItem {
     name: string,
-    value: number
+    value: number,
+    adcode: number,
+    selected?: boolean
 }
 
-interface ChartExpose {
-    initChart: () => void
-    resizeChart: () => void
+const barBaseOption: EChartsOption = {
+    backgroundColor: 'transparent',
+    grid: { left: 48, right: 24, top: 8, bottom: 18 },
+    tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' },
+        backgroundColor: 'rgba(5, 20, 31, 0.94)',
+        borderColor: 'rgba(87, 243, 229, 0.4)',
+        textStyle: { color: '#e7fbff' },
+    },
+    xAxis: {
+        type: 'category',
+        axisLabel: {
+            color: '#819ca8',
+            fontSize: 10,
+            formatter: function (value) {
+                if (!value.trim()) return value
+                let result = value.split(' ')[0]!
+                return result;
+            }
+        },
+        data: [],
+    },
+    yAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: 'rgba(113, 161, 174, 0.13)', type: 'dashed' } },
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: '#c4d5d9', fontSize: 11 },
+    },
+    series: [
+        {
+            id: 1,
+            name: '模型使用量',
+            type: 'bar',
+            barWidth: 10,
+            data: [],
+            itemStyle: {
+                borderRadius: [5, 5, 0, 0],
+                color: { type: 'linear', x: 1, y: 1, x2: 0, y2: 0, colorStops: [{ offset: 0, color: '#168e91' }, { offset: 1, color: '#66f0dc' }] }
+            },
+            label: { show: true, position: 'top', color: '#b8d8d9', fontSize: 10 },
+        },
+    ],
 }
 
-const mapRef = ref<ChartExpose>()
+const optionData = ref<DetailItem[]>([])
+
+const province_name = ref<string | undefined>('')
+
+const query_ai_detail_by_province_id = async (adcode: number | undefined) => {
+    try {
+        optionData.value = await chartsApi.getDetailByProvinceId(adcode)
+
+        province_name.value = back_province_name(adcode)
+
+    } catch (error) {
+        console.log(error);
+    }
+}
+
 
 const scatterData = ref<mapItem[]>([])
 
@@ -88,11 +153,41 @@ const query_province_total = async () => {
     try {
         const response = await chartsApi.getProvinceTotalDistrition()
         scatterData.value = response.map((tt) => {
-            return {
+
+            let ttItem: mapItem = {
                 name: tt.aiUseProvince,
-                value: tt.aiUseTotal
+                value: tt.aiUseTotal,
+                adcode: tt.aiUseProvinceId
             }
+
+            if (tt.aiUseProvinceId == 110000) {
+                ttItem = { ...ttItem, selected: true }
+            }
+
+            return ttItem
         })
+
+        let rangArray = scatterData.value.map(tt => tt.value)
+
+        let [min, max] = rangArray.reduce(
+            ([mn, mx], v) => [v < mn ? v : mn, v > mx ? v : mx],
+            [Infinity, -Infinity]
+        )
+
+        let option = {
+            visualMap: {
+                min: min,
+                max: max
+            },
+            series: [
+                {
+                    id: 1,
+                    data: scatterData.value
+                }
+            ]
+        }
+
+        mapSetting.value.chartOption = option
 
     } catch (error) {
         console.log(error);
@@ -100,65 +195,19 @@ const query_province_total = async () => {
 }
 
 
-
-
-interface RegionActivity {
-    name: string
-    value: number
+const map_Query = (params: ECElementEvent) => {
+    if (!params) return
+    try {
+        const { data } = params
+        query_ai_detail_by_province_id(data!.adcode)
+        let num = Math.floor(Math.random() * 10) + 1;
+        queryline({ provinceId: data!.adcode!, aiId: num })
+    } catch (err) {
+        console.log(err);
+    }
 }
 
-const echarts = inject(echartsKey)
-
-if (!echarts) {
-    throw new Error('ECharts 尚未注入，请检查 main.ts 中的全局配置。')
-}
-
-// 注册本地省级 GeoJSON，保证地图不依赖运行时网络请求。
-echarts.registerMap('china-regions', chinaMap as Parameters<typeof echarts.registerMap>[1])
-
-
-onMounted(() => {
-    query_province_total()
-})
-
-
-const regions: RegionActivity[] = [
-    { name: '广东', value: 96 },
-    { name: '江苏', value: 88 },
-    { name: '浙江', value: 83 },
-    { name: '山东', value: 76 },
-    { name: '四川', value: 69 },
-    { name: '河南', value: 63 },
-    { name: '湖北', value: 57 },
-    { name: '福建', value: 52 },
-    { name: '北京', value: 49 },
-    { name: '上海', value: 46 },
-    { name: '湖南', value: 43 },
-    { name: '安徽', value: 39 },
-    { name: '河北', value: 36 },
-    { name: '辽宁', value: 32 },
-    { name: '陕西', value: 29 },
-    { name: '重庆', value: 27 },
-    { name: '江西', value: 25 },
-    { name: '云南', value: 22 },
-    { name: '广西', value: 20 },
-    { name: '黑龙江', value: 18 },
-    { name: '吉林', value: 16 },
-    { name: '山西', value: 15 },
-    { name: '贵州', value: 14 },
-    { name: '内蒙古', value: 13 },
-    { name: '甘肃', value: 11 },
-    { name: '新疆', value: 10 },
-    { name: '海南', value: 9 },
-    { name: '宁夏', value: 8 },
-    { name: '青海', value: 7 },
-    { name: '西藏', value: 5 },
-    { name: '天津', value: 33 },
-    { name: '香港', value: 24 },
-    { name: '澳门', value: 12 },
-    { name: '台湾', value: 31 },
-]
-
+/* =================左侧地图图表数据部分================= */
 const mapOption: EChartsOption = {
     backgroundColor: 'transparent',
     tooltip: {
@@ -167,7 +216,6 @@ const mapOption: EChartsOption = {
         borderColor: 'rgba(87, 243, 229, 0.55)',
         textStyle: { color: '#e7fbff' },
         formatter: (params) => {
-            console.log(params);
             const item = Array.isArray(params) ? params[0] : params
             return `${item?.name ?? '区域'}<br/>活跃指数：${item?.value ?? '暂无数据'}`
         },
@@ -186,7 +234,14 @@ const mapOption: EChartsOption = {
         },
         scaleLimit: { min: 0.8, max: 3 },
         zoom: 1.08,
-
+        select: {
+            itemStyle: {
+                areaColor: '#e05a4f',      // 见下方推荐色
+                borderColor: '#ffffff',
+                borderWidth: 1.5
+            },
+            label: { show: true, color: '#fff' }
+        },
         itemStyle: {
             borderColor: 'rgba(135, 240, 234, 0.64)',
             borderWidth: 0.8,
@@ -197,21 +252,22 @@ const mapOption: EChartsOption = {
         emphasis: {
             label: { show: true, color: '#f2ffff', fontSize: 11 },
             itemStyle: { areaColor: '#36b9ad', borderColor: '#b5fff4', borderWidth: 1.2 },
-        },
-
-
+        }
     },
     series: [
         {
-            name: '区域活跃度',
+            name: '调用量',
             type: 'map',
+            id: 1,
             map: 'china-regions',
+            selectedMode: 'single',
             geoIndex: 0, // ★ 关键：复用上面那个 geo，不重画底图
             roam: true,
             data: scatterData.value,
         },
         {
             type: 'scatter',
+            id: 2,
             coordinateSystem: 'geo',
             geoIndex: 0,
             encode: {
@@ -219,20 +275,57 @@ const mapOption: EChartsOption = {
                 tooltip: 2,
                 label: 2
             },
-            data: [
-                [127.693027, 48.040465, 14523],
-                [127.693027, 48.040465, 14523],
-                [106.278179, 38.46637, 14523],
-
-            ],
+            data: [],
             itemStyle: {
                 color: '#66c2a5',
                 borderWidth: 1,
                 borderColor: '#3c7865'
             }
         },
-    ],
+    ]
 }
+
+const echarts = inject(echartsKey)
+
+if (!echarts) {
+    throw new Error('ECharts 尚未注入，请检查 main.ts 中的全局配置。')
+}
+
+// 注册本地省级 GeoJSON，保证地图不依赖运行时网络请求。
+echarts.registerMap('china-regions', chinaMap as Parameters<typeof echarts.registerMap>[1])
+
+const mapSetting = ref({
+    chartOption: {},
+    type: 'map'
+})
+
+const lineSetting = ref({
+    chartOption: {},
+    type: 'line'
+})
+
+const queryline = async (params: queryLine) => {
+    try {
+        const response = await chartsApi.getDetailByProAndAiIDs(params)
+        let option = {
+            xAxis: {
+                data: response.map(tt => tt.month)
+            },
+            series: [
+                {
+                    id: 1,
+                    data: response.map(tt => tt.value)
+                }
+            ]
+        }
+        lineSetting.value.chartOption = option
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+
+
 
 const trendOption: EChartsOption = {
     backgroundColor: 'transparent',
@@ -246,25 +339,24 @@ const trendOption: EChartsOption = {
     xAxis: {
         type: 'category',
         boundaryGap: false,
-        data: ['09/23', '09/24', '09/25', '09/26', '09/27', '09/28', '09/29'],
+        data: [],
         axisLine: { lineStyle: { color: 'rgba(134, 180, 192, 0.28)' } },
         axisTick: { show: false },
         axisLabel: { color: '#819ca8', fontSize: 10 },
     },
     yAxis: {
         type: 'value',
-        min: 0,
-        max: 30,
         axisLabel: { color: '#819ca8', fontSize: 10 },
         splitLine: { lineStyle: { color: 'rgba(113, 161, 174, 0.13)', type: 'dashed' } },
     },
     series: [{
         name: '访问量',
         type: 'line',
+        id: 1,
         smooth: true,
         symbol: 'circle',
         symbolSize: 6,
-        data: [16.2, 19.8, 18.4, 23.6, 21.9, 26.8, 28.4],
+        data: [],
         lineStyle: { color: '#56eee0', width: 2 },
         itemStyle: { color: '#a8fff4', borderColor: '#1a938d', borderWidth: 2 },
         areaStyle: {
@@ -297,7 +389,7 @@ const rankOption: EChartsOption = {
     yAxis: {
         type: 'category',
         inverse: true,
-        data: regions.slice(0, 8).map((region) => region.name),
+        // data: regions.slice(0, 8).map((region) => region.name),
         axisLine: { show: false },
         axisTick: { show: false },
         axisLabel: { color: '#c4d5d9', fontSize: 11 },
@@ -306,30 +398,27 @@ const rankOption: EChartsOption = {
         name: '访问量',
         type: 'bar',
         barWidth: 10,
-        data: regions.slice(0, 8).map((region, index) => ({
-            value: region.value,
-            itemStyle: {
-                borderRadius: [0, 5, 5, 0],
-                color: index < 3
-                    ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#168e91' }, { offset: 1, color: '#66f0dc' }] }
-                    : { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#24566a' }, { offset: 1, color: '#48aeb0' }] },
-            },
-        })),
+        // data: regions.slice(0, 8).map((region, index) => ({
+        //     value: region.value,
+        //     itemStyle: {
+        //         borderRadius: [0, 5, 5, 0],
+        //         color: index < 3
+        //             ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#168e91' }, { offset: 1, color: '#66f0dc' }] }
+        //             : { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#24566a' }, { offset: 1, color: '#48aeb0' }] },
+        //     },
+        // })),
         label: { show: true, position: 'right', color: '#b8d8d9', fontSize: 10 },
     }],
 }
 
-const now = ref(new Date())
-const currentTime = computed(() => now.value.toLocaleString('zh-CN', { hour12: false }))
-let clockTimer: ReturnType<typeof setInterval> | undefined
-
 onMounted(() => {
-    clockTimer = setInterval(() => { now.value = new Date() }, 1000)
+    query_province_total()
+    // 110000这是北京 默认北京数据
+    query_ai_detail_by_province_id(110000)
+    let num = Math.floor(Math.random() * 10) + 1;
+    queryline({ provinceId: 110000, aiId: num })
 })
 
-onBeforeUnmount(() => {
-    if (clockTimer) clearInterval(clockTimer)
-})
 </script>
 
 <style scoped lang="scss">

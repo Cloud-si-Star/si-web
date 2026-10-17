@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.schemas.file_record import FileRecordPage, FileRecordQuery, FileRecordCreate
-from app.schemas.ai_info import AiInfoPage, AiInfoQuery
+from app.schemas.ai_info import AiInfoPage, AiInfoQuery, AIbyMonthChemas
 from app.schemas.response import ResponseModel, success
 from app.services import ai_info as ai_service
 from app.services import file_record as file_service
@@ -243,7 +243,7 @@ def get_ai_list(
 @router.post("/batch", response_model=ResponseModel)
 def create_ai_status(db: Session = Depends(get_db)):
     ai_service.create_ai_use_distribution(db)
-    return success(data={"code": 0, "message": "没有报错"})
+    return success(data={"code": 0, "message": "数据输入完成"})
 
 
 @router.get("/use", response_model=ResponseModel)
@@ -263,3 +263,12 @@ def back_ai_use_distrition_by_province(province_id: int, db: Session = Depends(g
 def back_once(provinceIds: list[dict], db: Session = Depends(get_db)):
     ai_service.province_type_id(provinceIds, db)
     return success()
+
+
+@router.get("/detail-by-province", summary="根据省份ID和模型ID获取折线图数据", response_model=ResponseModel)
+def back_detail_by_province(
+        payload: AIbyMonthChemas = Depends(),
+        db: Session = Depends(get_db)
+):
+    rows = ai_service.detail_by_aiIds_provinceIds(payload, db)
+    return success(data=rows)

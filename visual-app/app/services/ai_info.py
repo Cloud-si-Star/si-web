@@ -9,7 +9,7 @@ from app.core.logger import logger
 from app.models.ai_info import AiInfo
 from app.models.orders import AIUseDistribution, AiType, Province
 from app.schemas.ai_info import AiInfoQuery, AiInfoItem, AiInfoPage, AiInfoUpdate, AiUseByProvince, AiUseByProvinceId, \
-    ProvinceChemas
+    ProvinceChemas, AIbyMonthChemas, AIbyMonthChemasResponse
 import itertools
 
 
@@ -245,10 +245,10 @@ def create_ai_use_distribution(db: Session) -> bool:
     rows_valid = [{'adcode': char.adcode, 'name': char.name} for char in rows]
     current = date(2025, 10, 12)
     count = 1
-    while count < 3:
-        count += 1
+    while count < 360:
+        count += 7
         ans = create_ai_use_by_datetime(rows_valid, current.isoformat())
-        current += timedelta(days=1)
+        current += timedelta(days=7)
         db.bulk_insert_mappings(AIUseDistribution, ans)
         db.commit()
     return True
@@ -286,7 +286,7 @@ def use_total_by_province_id(province_id: int, db: Session) -> list[AiUseByProvi
         select(
             AIUseDistribution.ai_type_id,
             AiType.label,
-            func(AIUseDistribution.ai_use_number).label('ai_use_total')
+            func.sum(AIUseDistribution.ai_use_number).label('ai_use_total')
         )
         .join(AiType, AIUseDistribution.ai_type_id == AiType.id)
         .where(AIUseDistribution.ai_use_province_id == province_id)
@@ -316,3 +316,28 @@ def province_type_id(provinceIds: list, db: Session):
     db.bulk_insert_mappings(Province, ans)
     db.commit()
     return True
+
+
+def detail_by_aiIds_provinceIds(payload: AIbyMonthChemas, db: Session) -> list[AIbyMonthChemasResponse]:
+    month_expr = func.date_format(AIUseDistribution.ai_use_time, '%Y-%m').label('month')
+    stmt = (
+        select(
+            month_expr,
+            AiType.label,
+            func.sum(AIUseDistribution.ai_use_number).label('value')
+        )
+        .join(AiType, AIUseDistribution.ai_type_id == AiType.id)
+        .where(
+            AIUseDistribution.ai_type_id == payload.ai_id and AIUseDistribution.ai_use_province_id == payload.province_id)
+        .group_by(month_expr, AiType.label)
+    )
+    rows = db.execute(stmt).all()
+
+    return [
+        AIbyMonthChemasResponse(
+            month=r.month,
+            value=r.value,
+            label=r.label
+        )
+        for r in rows
+    ]

@@ -6,11 +6,37 @@ export interface Distrition {
     aiUseProvinceId: number
 }
 
+export interface DetailItem {
+    aiUseTotal: number
+    aiLabel: string
+    aiId: number
+}
+
+export interface lineItem {
+    value: number
+    label: string
+    month: string
+}
+
+export interface queryLine {
+    provinceId: number
+    aiId: number
+}
+
 export const chartsApi = {
 
     /** 拿到省份ai_use使用数据 差一个地图中心问题*/
     getProvinceTotalDistrition() {
         return request.get<Distrition[]>('/v1/data/use')
+    },
+
+    /**根据具体省份ID获取每个省份中每个模型具体使用数量 */
+    getDetailByProvinceId(province_id: number | undefined) {
+        return request.get<DetailItem[]>(`/v1/data/detail/${province_id}`)
+    },
+
+    getDetailByProAndAiIDs(params: queryLine) {
+        return request.get<lineItem[]>('/v1/data/detail-by-province', params)
     },
 
     addProvince(params: any) {
@@ -23,10 +49,10 @@ export const PROVINCE_CENTER = [
     { adcode: 120000, name: '天津市', center: [117.190182, 39.125596] },
     { adcode: 130000, name: '河北省', center: [114.502461, 38.045474] },
     { adcode: 140000, name: '山西省', center: [112.549248, 37.857014] },
-    { adcode: 150000, name: '内蒙古自治区', center: [111.670801, 40.818311] },
+    { adcode: 150000, name: '内蒙古', center: [111.670801, 40.818311] },
     { adcode: 210000, name: '辽宁省', center: [123.429096, 41.796767] },
     { adcode: 220000, name: '吉林省', center: [125.3245, 43.886841] },
-    { adcode: 230000, name: '黑龙江省', center: [126.642464, 45.756967] },
+    { adcode: 230000, name: '黑龙江', center: [126.642464, 45.756967] },
     { adcode: 310000, name: '上海市', center: [121.472644, 31.231706] },
     { adcode: 320000, name: '江苏省', center: [118.767413, 32.041544] },
     { adcode: 330000, name: '浙江省', center: [120.153576, 30.287459] },
@@ -56,9 +82,8 @@ export const PROVINCE_CENTER = [
 ]
 
 
-export function handlerScatter(params: Distrition[]) {
-    for (let char of PROVINCE_CENTER) {
-
-    }
-    return []
+export function back_province_name(params: number | undefined) {
+    if (!params) return ''
+    let ans = PROVINCE_CENTER.find(tt => tt.adcode == params)
+    return ans?.name
 }
