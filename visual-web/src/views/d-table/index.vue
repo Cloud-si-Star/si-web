@@ -23,8 +23,8 @@
             </div>
             <div class="summary-item">
                 <span>领跑模型</span>
-                <strong class="leader-name">{{ topModel?.ai_name ?? '暂无' }}</strong>
-                <small>{{ topModel ? `${formatNumber(topModel.ai_use)} 次调用` : '没有匹配的模型' }}</small>
+                <strong class="leader-name">{{ topModel?.aiName ?? '暂无' }}</strong>
+                <small>{{ topModel ? `${formatNumber(topModel.aiUse)} 次调用` : '没有匹配的模型' }}</small>
             </div>
             <div class="summary-item">
                 <el-button :icon="RefreshLeft" @click="restoreDefaultOrder">恢复默认顺序</el-button>
@@ -54,50 +54,49 @@
             </div>
 
             <div class="ranking-list" role="list" aria-label="可排序的 AI 模型榜单" @dragover.prevent @drop="finishDrag">
-                <article v-for="(item, index) in filteredItems" :key="item.ai_id" class="ranking-row" :class="{
+                <article v-for="(item, index) in filteredItems" :key="item.aiId" class="ranking-row" :class="{
                     'is-draggable': sortMode === 'manual',
-                    'is-dragging': draggedId === item.ai_id,
-                    'is-drop-target': dropTargetId === item.ai_id,
-                }" role="listitem" :draggable="sortMode === 'manual'" @dragstart="startDrag($event, item.ai_id)"
-                    @dragenter.prevent="setDropTarget(item.ai_id)" @dragover.prevent
-                    @drop.stop.prevent="dropOn(item.ai_id)" @dragend="clearDragState">
+                    'is-dragging': draggedId === item.aiId,
+                    'is-drop-target': dropTargetId === item.aiId,
+                }" role="listitem" :draggable="sortMode === 'manual'" @dragstart="startDrag($event, item.aiId)"
+                    @dragenter.prevent="setDropTarget(item.aiId)" @dragover.prevent
+                    @drop.stop.prevent="dropOn(item.aiId)" @dragend="clearDragState">
                     <span class="rank-index">{{ String(index + 1).padStart(2, '0') }}</span>
 
                     <button class="drag-handle" type="button" :disabled="sortMode !== 'manual'"
-                        :aria-label="`拖动 ${item.ai_name} 调整排名`"
-                        :title="sortMode === 'manual' ? '拖动调整顺序' : '切换到手动排序后可拖动'"
-                        @keydown.up.prevent="moveItem(item.ai_id, -1)" @keydown.down.prevent="moveItem(item.ai_id, 1)">
+                        :aria-label="`拖动 ${item.aiName} 调整排名`" :title="sortMode === 'manual' ? '拖动调整顺序' : '切换到手动排序后可拖动'"
+                        @keydown.up.prevent="moveItem(item.aiId, -1)" @keydown.down.prevent="moveItem(item.aiId, 1)">
                         <el-icon>
                             <Rank />
                         </el-icon>
                     </button>
 
                     <div class="model-mark" :class="`tone-${index % 5}`" aria-hidden="true">
-                        {{ item.ai_name.slice(0, 1) }}
+                        {{ item.aiName.slice(0, 1) }}
                     </div>
 
                     <div class="model-info">
                         <div class="model-title-line">
-                            <h3>{{ item.ai_name }}</h3>
-                            <span class="model-id">ID {{ item.ai_id }}</span>
+                            <h3>{{ item.aiName }}</h3>
+                            <span class="model-id">ID {{ item.aiId }}</span>
                         </div>
-                        <div class="usage-track" role="progressbar" :aria-label="`${item.ai_name} 相对调用量`"
-                            :aria-valuenow="item.ai_use" :aria-valuemin="0" :aria-valuemax="maxUsage">
-                            <span :style="{ width: `${usagePercent(item.ai_use)}%` }"></span>
+                        <div class="usage-track" role="progressbar" :aria-label="`${item.aiName} 相对调用量`"
+                            :aria-valuenow="item.aiUse" :aria-valuemin="0" :aria-valuemax="maxUsage">
+                            <span :style="{ width: `${usagePercent(item.aiUse)}%` }"></span>
                         </div>
                     </div>
 
                     <div class="usage-value">
-                        <strong>{{ formatNumber(item.ai_use) }}</strong>
+                        <strong>{{ formatNumber(item.aiUse) }}</strong>
                         <span>次调用</span>
                     </div>
 
                     <div class="row-actions" aria-label="调整模型顺序">
                         <el-button text circle :icon="ArrowUp" :disabled="sortMode !== 'manual' || index === 0"
-                            :aria-label="`${item.ai_name} 上移`" @click="moveItem(item.ai_id, -1)" />
+                            :aria-label="`${item.aiName} 上移`" @click="moveItem(item.aiId, -1)" />
                         <el-button text circle :icon="ArrowDown"
                             :disabled="sortMode !== 'manual' || index === filteredItems.length - 1"
-                            :aria-label="`${item.ai_name} 下移`" @click="moveItem(item.ai_id, 1)" />
+                            :aria-label="`${item.aiName} 下移`" @click="moveItem(item.aiId, 1)" />
                     </div>
                 </article>
 
@@ -119,57 +118,70 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElButton, ElIcon, ElInput, ElRadioButton, ElRadioGroup } from 'element-plus'
 import { ArrowDown, ArrowUp, Rank, RefreshLeft, Search } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useAiStore } from '@/stores/ai_item'
+import { chartsApi, type ai_item } from '@/api/charts'
 
 defineOptions({ name: 'AiRankingBoard' })
 
 type SortMode = 'manual' | 'usage' | 'name'
 
 const aiStore = useAiStore()
-const { aiTable } = storeToRefs(aiStore)
+const aiTable = ref<ai_item[]>([])
+
+const query_all_detail = async () => {
+    try {
+        aiTable.value = await chartsApi.getAllUseDetail()
+    } catch (error) {
+        console.log(error);
+    }
+}
+
+onMounted(() => {
+    query_all_detail()
+})
 
 const searchText = ref('')
 const sortMode = ref<SortMode>('manual')
-const manualOrder = ref<number[]>(aiTable.value.map((item) => item.ai_id))
+const manualOrder = ref<number[]>(aiTable.value.map((item) => item.aiId))
 const draggedId = ref<number | null>(null)
 const dropTargetId = ref<number | null>(null)
 
 /** 新增模型時把新 ID 追加到手動順序末尾，刪除模型時清除過期 ID。 */
 watch(aiTable, (items) => {
-    const currentIds = new Set(items.map((item) => item.ai_id))
+    const currentIds = new Set(items.map((item) => item.aiId))
     manualOrder.value = manualOrder.value.filter((id) => currentIds.has(id))
     items.forEach((item) => {
-        if (!manualOrder.value.includes(item.ai_id)) manualOrder.value.push(item.ai_id)
+        if (!manualOrder.value.includes(item.aiId)) manualOrder.value.push(item.aiId)
     })
 }, { deep: true })
 
 const filteredItems = computed(() => {
     const query = searchText.value.trim().toLocaleLowerCase()
     const matches = aiTable.value.filter((item) =>
-        item.ai_name.toLocaleLowerCase().includes(query) || String(item.ai_id).includes(query),
+        item.aiName.toLocaleLowerCase().includes(query) || String(item.aiId).includes(query),
     )
 
     if (sortMode.value === 'usage') {
-        return [...matches].sort((left, right) => right.ai_use - left.ai_use)
+        return [...matches].sort((left, right) => right.aiName - left.aiUse)
     }
     if (sortMode.value === 'name') {
-        return [...matches].sort((left, right) => left.ai_name.localeCompare(right.ai_name, 'zh-CN'))
+        return [...matches].sort((left, right) => left.aiName.localeCompare(right.aiName, 'zh-CN'))
     }
 
     const orderIndex = new Map(manualOrder.value.map((id, index) => [id, index]))
     return [...matches].sort((left, right) =>
-        (orderIndex.get(left.ai_id) ?? Number.MAX_SAFE_INTEGER)
-        - (orderIndex.get(right.ai_id) ?? Number.MAX_SAFE_INTEGER),
+        (orderIndex.get(left.aiId) ?? Number.MAX_SAFE_INTEGER)
+        - (orderIndex.get(right.aiId) ?? Number.MAX_SAFE_INTEGER),
     )
 })
 
-const totalUsage = computed(() => filteredItems.value.reduce((total, item) => total + item.ai_use, 0))
-const topModel = computed(() => [...filteredItems.value].sort((left, right) => right.ai_use - left.ai_use)[0])
-const maxUsage = computed(() => Math.max(1, ...filteredItems.value.map((item) => item.ai_use)))
+const totalUsage = computed(() => filteredItems.value.reduce((total, item) => total + item.aiUse, 0))
+const topModel = computed(() => [...filteredItems.value].sort((left, right) => right.aiUse - left.aiUse)[0])
+const maxUsage = computed(() => Math.max(1, ...filteredItems.value.map((item) => item.aiUse)))
 
 const formatNumber = (value: number): string => new Intl.NumberFormat('zh-CN').format(value)
 
@@ -191,7 +203,7 @@ const reorderItems = (sourceId: number, targetId: number): void => {
 
 const moveItem = (itemId: number, offset: -1 | 1): void => {
     if (sortMode.value !== 'manual') return
-    const visibleIds = filteredItems.value.map((item) => item.ai_id)
+    const visibleIds = filteredItems.value.map((item) => item.aiId)
     const visibleIndex = visibleIds.indexOf(itemId)
     const targetId = visibleIds[visibleIndex + offset]
     if (targetId !== undefined) reorderItems(itemId, targetId)
@@ -231,7 +243,7 @@ const clearDragState = (): void => {
 }
 
 const restoreDefaultOrder = (): void => {
-    manualOrder.value = aiTable.value.map((item) => item.ai_id)
+    manualOrder.value = aiTable.value.map((item) => item.aiId)
     sortMode.value = 'manual'
     searchText.value = ''
 }

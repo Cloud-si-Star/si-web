@@ -9,7 +9,7 @@ from app.core.logger import logger
 from app.models.ai_info import AiInfo
 from app.models.orders import AIUseDistribution, AiType, Province
 from app.schemas.ai_info import AiInfoQuery, AiInfoItem, AiInfoPage, AiInfoUpdate, AiUseByProvince, AiUseByProvinceId, \
-    ProvinceChemas, AIbyMonthChemas, AIbyMonthChemasResponse
+    ProvinceChemas, AIbyMonthChemas, AIbyMonthChemasResponse, DetailAll
 import itertools
 
 
@@ -243,12 +243,20 @@ def create_ai_use_distribution(db: Session) -> bool:
     )
     rows = db.execute(stmt).all()
     rows_valid = [{'adcode': char.adcode, 'name': char.name} for char in rows]
-    current = date(2025, 10, 12)
-    count = 1
-    while count < 360:
-        count += 7
-        ans = create_ai_use_by_datetime(rows_valid, current.isoformat())
-        current += timedelta(days=7)
+
+    stmt_date = (
+        select(AIUseDistribution.ai_use_time)
+        .order_by(AIUseDistribution.ai_use_time.desc())
+    )
+
+    new_date = db.execute(stmt_date).first()
+    new_date = new_date.ai_use_time
+    new_date += timedelta(days=7)
+    current_date = date.today()
+
+    while new_date <= current_date:
+        ans = create_ai_use_by_datetime(rows_valid, new_date.isoformat())
+        new_date += timedelta(days=7)
         db.bulk_insert_mappings(AIUseDistribution, ans)
         db.commit()
     return True
@@ -331,6 +339,7 @@ def detail_by_aiIds_provinceIds(payload: AIbyMonthChemas, db: Session) -> list[A
             AIUseDistribution.ai_type_id == payload.ai_id and AIUseDistribution.ai_use_province_id == payload.province_id)
         .group_by(month_expr, AiType.label)
     )
+
     rows = db.execute(stmt).all()
 
     return [
@@ -338,6 +347,29 @@ def detail_by_aiIds_provinceIds(payload: AIbyMonthChemas, db: Session) -> list[A
             month=r.month,
             value=r.value,
             label=r.label
+        )
+        for r in rows
+    ]
+
+
+def back_detail_by_all(db: Session) -> list[DetailAll]:
+    stmt = (
+        select(
+            AIUseDistribution.ai_type_id,
+            AiType.label,
+            func.sum(AIUseDistribution.ai_use_number).label('ai_use')
+        )
+        .join(AiType, AiType.id == AIUseDistribution.ai_type_id)
+        .group_by(AIUseDistribution.ai_type_id)
+    )
+
+    rows = db.execute(stmt).all()
+
+    return [
+        DetailAll(
+            ai_id=r.ai_type_id,
+            ai_name=r.label,
+            ai_use=r.ai_use
         )
         for r in rows
     ]

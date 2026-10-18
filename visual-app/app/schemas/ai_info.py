@@ -72,3 +72,9 @@ class AIbyMonthChemasResponse(CamelModel):
     value: int
     label: str
     month: str
+
+
+class DetailAll(CamelModel):
+    ai_id: int
+    ai_name: str
+    ai_use: int

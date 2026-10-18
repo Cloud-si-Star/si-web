@@ -34,6 +34,10 @@ export const tableApi = {
         return request.patch<Service‌Response>('/v1/data/list', params)
     },
 
+    patchAll() {
+        return request.post('/v1/data/batch')
+    },
+
     upload(params: File) {
         let cfg = {
             headers: { 'Content-Type': 'multipart/form-data' }

@@ -7,6 +7,7 @@ declare module 'echarts' {
             adcode?: number
             name?: string
             value?: number
+            aiId?: number
         }
     }
 }

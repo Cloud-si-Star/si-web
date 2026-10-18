@@ -44,12 +44,14 @@
                             <strong>1,284,620</strong>
                             <b>+8.6%</b>
                         </div>
-                        <vPictorialBar :base-option="barBaseOption" :option-data="optionData" />
+                        <vPictorialBar :base-option="barBaseOption" :option-data="optionData"
+                            @chartClick="query_by_ai_id" />
                     </div>
                 </SvgBorder>
 
-                <SvgBorder class="chart-panel rank-panel" title="区域访问排行" title-position="top-left" color="#126b83"
-                    light-color="#57f3e5" :stroke-width="1.2" :duration="5.8">
+                <SvgBorder class="chart-panel rank-panel" :title="`${province_name}${ai_label}模型访问趋势`"
+                    title-position="top-right" color="#126b83" light-color="#57f3e5" :stroke-width="1.2"
+                    :duration="5.8">
                     <div class="chart-content rank-content">
                         <div class="rank-note"><span>TOP 8</span><span>访问量 / 万</span></div>
                         <vConChart :base-option="trendOption" :base-setting="lineSetting">
@@ -73,7 +75,7 @@ import vConChart from '@/components/v-con-chart.vue'
 
 import chinaMap from '@/assets/maps/china.json'
 import { echartsKey } from '@/types/keys'
-import { chartsApi, PROVINCE_CENTER, back_province_name, type DetailItem, type queryLine } from '@/api/charts'
+import { chartsApi, formatNum, back_province_name, type DetailItem, type queryLine } from '@/api/charts'
 
 
 /* =================右侧上方图表数据部分================= */
@@ -125,7 +127,15 @@ const barBaseOption: EChartsOption = {
                 borderRadius: [5, 5, 0, 0],
                 color: { type: 'linear', x: 1, y: 1, x2: 0, y2: 0, colorStops: [{ offset: 0, color: '#168e91' }, { offset: 1, color: '#66f0dc' }] }
             },
-            label: { show: true, position: 'top', color: '#b8d8d9', fontSize: 10 },
+            label: {
+                show: true,
+                position: 'top',
+                color: '#b8d8d9',
+                fontSize: 10,
+                formatter: function (params) {
+                    return formatNum(Number(params.value))
+                }
+            },
         },
     ],
 }
@@ -134,11 +144,19 @@ const optionData = ref<DetailItem[]>([])
 
 const province_name = ref<string | undefined>('')
 
+const ai_label = ref<string | undefined>('')
+
 const query_ai_detail_by_province_id = async (adcode: number | undefined) => {
     try {
         optionData.value = await chartsApi.getDetailByProvinceId(adcode)
 
         province_name.value = back_province_name(adcode)
+
+        if (optionData.value.length > 0) {
+            let tt = optionData.value[0]
+            ai_label.value = tt?.aiLabel
+            queryline({ provinceId: adcode!, aiId: tt?.aiId! })
+        }
 
     } catch (error) {
         console.log(error);
@@ -194,16 +212,30 @@ const query_province_total = async () => {
     }
 }
 
+const adcode = ref(0)
 
 const map_Query = (params: ECElementEvent) => {
     if (!params) return
     try {
-        const { data } = params
+        const { data, name } = params
+
         query_ai_detail_by_province_id(data!.adcode)
-        let num = Math.floor(Math.random() * 10) + 1;
-        queryline({ provinceId: data!.adcode!, aiId: num })
+        adcode.value = data?.adcode!
+
     } catch (err) {
         console.log(err);
+    }
+}
+
+const query_by_ai_id = (params: ECElementEvent) => {
+    if (!params) return
+    try {
+        const { data, name } = params
+        ai_label.value = name
+        queryline({ provinceId: adcode.value, aiId: data?.aiId! })
+
+    } catch (error) {
+
     }
 }
 
@@ -415,8 +447,6 @@ onMounted(() => {
     query_province_total()
     // 110000这是北京 默认北京数据
     query_ai_detail_by_province_id(110000)
-    let num = Math.floor(Math.random() * 10) + 1;
-    queryline({ provinceId: 110000, aiId: num })
 })
 
 </script>

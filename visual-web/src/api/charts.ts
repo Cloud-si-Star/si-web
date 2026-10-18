@@ -23,6 +23,12 @@ export interface queryLine {
     aiId: number
 }
 
+export interface ai_item {
+    aiId: number
+    aiName: string
+    aiUse: number
+}
+
 export const chartsApi = {
 
     /** 拿到省份ai_use使用数据 差一个地图中心问题*/
@@ -41,6 +47,9 @@ export const chartsApi = {
 
     addProvince(params: any) {
         return request.post('/v1/data/add-province', params)
+    },
+    getAllUseDetail() {
+        return request.get<ai_item[]>('/v1/data/all-detail')
     }
 }
 
@@ -86,4 +95,24 @@ export function back_province_name(params: number | undefined) {
     if (!params) return ''
     let ans = PROVINCE_CENTER.find(tt => tt.adcode == params)
     return ans?.name
+}
+
+
+/**
+ * 数值格式化：大于10000转万，大于1亿转亿
+ * @param {number} num 原始数字
+ * @returns {string}
+ */
+export function formatNum(num: number | undefined) {
+    if (num === null || num === undefined || isNaN(num)) {
+        return '--';
+    }
+    const n = Number(num);
+    if (n >= 100000000) {
+        return (n / 100000000).toFixed(2) + '亿';
+    } else if (n >= 10000) {
+        return (n / 10000).toFixed(2) + '万';
+    } else {
+        return n.toString();
+    }
 }

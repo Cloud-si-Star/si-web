@@ -1,6 +1,6 @@
 <template>
   <div class="common-box">
-    <div class="title-position">其实是用于标题 可以不写</div>
+    <div class="title-position"></div>
     <div class="common-ref" ref="chartRef"></div>
   </div>
 </template>
@@ -59,7 +59,7 @@ const emit = defineEmits<{
   .common-ref {
     height: 100%;
     width: 100%;
-    border: 1px solid #FFF;
+    // border: 1px solid #FFF;
   }
 }
 </style>

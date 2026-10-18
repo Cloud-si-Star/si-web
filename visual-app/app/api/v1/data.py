@@ -272,3 +272,9 @@ def back_detail_by_province(
 ):
     rows = ai_service.detail_by_aiIds_provinceIds(payload, db)
     return success(data=rows)
+
+
+@router.get('/all-detail', summary="统计每个模型使用量", response_model=ResponseModel)
+def back_all_detail(db: Session = Depends(get_db)):
+    rows = ai_service.back_detail_by_all(db)
+    return success(data=rows)

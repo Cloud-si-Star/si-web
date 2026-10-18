@@ -47,7 +47,7 @@ export function useECharts(
 
         if (type == 'bar') {
             let xAxis = optionData.map((tt: any) => tt.aiLabel)
-            let data = optionData.map((tt: any) => tt.aiUseTotal)
+            let data = optionData.map((tt: any) => { return { value: tt.aiUseTotal, aiId: tt.aiId } })
             chart.value.setOption({ xAxis: { data: xAxis }, series: { id: 1, data } })
         }
 

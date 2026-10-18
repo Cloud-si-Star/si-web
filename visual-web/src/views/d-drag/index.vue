@@ -21,7 +21,7 @@
         <div class="btn-position">
             <el-button type="primary" @click="debouncedSearch">查 询</el-button>
             <el-button @click="resetForm">重 置</el-button>
-            <el-button type="success">新 增</el-button>
+            <el-button type="success" @click="patchAiDistribution">同步数据</el-button>
         </div>
         <div class="table-position">
             <el-table :data="tableData" style="height: 100%;" border>
@@ -115,8 +115,6 @@ const tableData = ref<tableDTO[]>([])
  * 查询方法
  */
 const queryToService = () => {
-    console.log('打印几次');
-
     let params: tableListParams = formInline.value
     tableApi.getList(params).then(res => {
 
@@ -208,6 +206,14 @@ const submit = async (formEl: FormInstance | undefined) => {
 }
 
 /*============方法处理部分 对于防抖以及初始化============*/
+
+const patchAiDistribution = async () => {
+    try {
+        await tableApi.patchAll()
+    } catch (error) {
+        console.log(error);
+    }
+}
 
 const debouncedSearch = debounce(queryToService, 500)
 
