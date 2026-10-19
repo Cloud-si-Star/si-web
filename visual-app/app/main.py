@@ -6,10 +6,11 @@ from app.core.logger import logger
 from app.api.v1 import data, menus, chat as chat_conversation
 from app.api.v2 import chat
 from app.utils.exceptions import register_exception_handlers
+from app.api.v1 import sales
 
 # 数据库
 from app.core.database import engine, Base
-import app.models.orders
+import app.models.sales
 
 Base.metadata.create_all(bind=engine)
 
@@ -37,6 +38,7 @@ app.include_router(data.router, prefix="/api/v1")
 app.include_router(menus.router, prefix="/api/v1")
 app.include_router(chat_conversation.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v2")
+app.include_router(sales.router, prefix="/api/v1")
 
 
 @app.on_event("startup")
