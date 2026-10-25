@@ -33,23 +33,23 @@ export const chartsApi = {
 
     /** 拿到省份ai_use使用数据 差一个地图中心问题*/
     getProvinceTotalDistrition() {
-        return request.get<Distrition[]>('/v1/data/use')
+        return request.get<Distrition[]>('/v1/ai/usage/provinces')
     },
 
     /**根据具体省份ID获取每个省份中每个模型具体使用数量 */
     getDetailByProvinceId(province_id: number | undefined) {
-        return request.get<DetailItem[]>(`/v1/data/detail/${province_id}`)
+        return request.get<DetailItem[]>(`/v1/ai/usage/provinces/${province_id}/models`)
     },
 
     getDetailByProAndAiIDs(params: queryLine) {
-        return request.get<lineItem[]>('/v1/data/detail-by-province', params)
+        return request.get<lineItem[]>('/v1/ai/usage/monthly', params)
     },
 
     addProvince(params: any) {
-        return request.post('/v1/data/add-province', params)
+        return request.post('/v1/ai/provinces', params)
     },
     getAllUseDetail() {
-        return request.get<ai_item[]>('/v1/data/all-detail')
+        return request.get<ai_item[]>('/v1/ai/usage/models')
     }
 }
 

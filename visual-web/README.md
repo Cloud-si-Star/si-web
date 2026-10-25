@@ -231,6 +231,54 @@ chartItem.value = {
 
 key的作用：路径一变，key 就变，强制销毁旧组件、创建新组件 保证数据干净
 
+## 前后端接口与目录约定
+
+### `visual-web/src` 目录职责
+
+```text
+src/
+├── api/          # Axios 资源接口封装和 API DTO
+├── assets/       # 图片、地图等静态资源
+├── components/   # 可复用 Vue 组件
+├── router/       # 前端路由
+├── stores/       # Pinia 全局状态
+├── types/        # TypeScript 共享类型和环境声明
+├── utils/        # 请求配置、通用工具、mock/上传辅助
+└── views/        # 按业务页面划分的视图及局部页面逻辑
+```
+
+- 页面组件放 `views/<业务域>/`；跨页面复用的 UI 放 `components/`。
+- HTTP 资源请求集中放 `api/` 并复用 `utils/request.ts`。需要 `ReadableStream` / SSE 的接口可以使用 `fetch`，但请求地址、请求体和错误检查也要与后端契约保持一致。
+- 接口类型尽量使用明确 DTO，不用 `any` 规避接口契约检查。
+- 后端改路由时，先搜索 `src/` 中的所有调用点（包括 `api/`、页面 `fetch` 和下载/上传逻辑），再同步修改，并验证没有遗留旧 URL。
+
+### 本次后端路由调整后的调用约定
+
+后端统一使用 `/api/v1`。Axios 的 `VITE_API_BASE_URL` 应指向后端 API 根地址（通常以 `/api` 结尾），因此 `request` 封装传入 `/v1/...`；原生 `fetch` 则使用完整路径 `/api/v1/...`。
+
+| 功能 | 前端调用路径 |
+|---|---|
+| 文件记录列表 | `GET /v1/files` |
+| 上传并记录文件 | `POST /v1/files` |
+| 下载文件 | `GET /v1/files/{file_id}/content` |
+| AI 模型分页/更新 | `GET /v1/ai/models`、`PATCH /v1/ai/models/{ai_id}` |
+| AI 使用分布/省份统计 | `/v1/ai/usage/...` |
+| 菜单树 | `GET /v1/menus/tree` |
+| 会话列表/新建 | `GET`、`POST /v1/conversations` |
+| 会话消息历史 | `GET /v1/conversations/{id}/messages` |
+| 会话 SSE 对话 | `POST /api/v1/conversations/{id}/messages` |
+| 销售种子数据 | `POST /v1/sales/seeds` |
+
+旧的 `/api/v2/...`、`/v1/data/...`、`/v1/conversation/...` 和 `GET /v1/sales/batch` 地址不再提供。修改调用前应以 `visual-app/README.md` 的路由表为准。
+
+### 后续改动步骤
+
+1. 确认资源名、HTTP 方法、路径参数/查询参数和请求/响应结构；只在符合资源语义且不造成更大兼容风险时采用 REST 风格。
+2. 更新后端路由和 Pydantic Schema，服务层继续保留业务逻辑，路由不直接复制数据库操作。
+3. 搜索所有前端调用点；同步更新 API 封装、SSE `fetch`、上传、下载及页面直接请求。
+4. 更新前后端各自 README 和 `docs/work-log/` 记录。
+5. 用全局搜索确认旧 URL/导入不再被使用；运行后端语法/路由检查、前端类型检查及构建，并区分本次错误和既有错误。
+
 【要做什么】
 开发一个左边图表类型选择域  中间预览  右边配置  页面 用echarts开发 图表配置出来需要开发  配置可以选数据 主题 颜色 元素颜色 
 

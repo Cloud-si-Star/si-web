@@ -4,7 +4,8 @@
 
 | 功能 | 方法与路径 | 请求 | `data` 响应 | 后端协作要求 |
 | --- | --- | --- | --- | --- |
-| 查询菜单列表 | `GET /api/v1/menus` | 无 | `MenuTreeItem[]`，后端按 `parent_id` 返回递归 `children` 树 | 每层按 `sort_order ASC, id ASC` 排序；无父记录的菜单作为根节点返回；字段名使用 SQL 下划线形式 |
+| 查询菜单树 | `GET /api/v1/menus/tree` | 无 | `MenuTreeItem[]`，后端按 `parent_id` 返回递归 `children` 树 | 每层按 `sort_order ASC, id ASC` 排序；无父记录的菜单作为根节点返回；字段名使用 SQL 下划线形式 |
+| 查询顶级菜单以下子树 | `GET /api/v1/menus/tree/children` | 无 | `MenuTreeItem[]`，顶级菜单本身不包含在结果中 | 每个顶级菜单的直接子节点作为结果根节点，仍保留其后代 `children` |
 | 新增菜单 | `POST /api/v1/menus` | `CreateMenuDTO` JSON | 新建后的完整 `MenuItem` | 校验必填字段及父级菜单存在；`id`、`created_at`、`updated_at` 由数据库生成 |
 | 启用/关闭菜单 | `PATCH /api/v1/menus/{id}/visibility` | `{ "visible": 0 }` 或 `{ "visible": 1 }` | 更新后的完整 `MenuItem` | `visible=0` 为关闭，`visible=1` 为启用；该操作保留记录，不是删除 |
 | 删除菜单 | `DELETE /api/v1/menus/{id}` | 无 | `null` 或成功标记 | 物理删除；存在子菜单时返回 HTTP 409，避免孤儿记录；不存在返回 HTTP 404 |

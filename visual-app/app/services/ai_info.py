@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.logger import logger
 from app.models.ai_info import AiInfo
-from app.models.orders import AIUseDistribution, AiType, Province
+from app.models.ai_usage import AIUseDistribution, AiType, Province
 from app.schemas.ai_info import AiInfoQuery, AiInfoItem, AiInfoPage, AiInfoUpdate, AiUseByProvince, AiUseByProvinceId, \
     ProvinceChemas, AIbyMonthChemas, AIbyMonthChemasResponse, DetailAll
 import itertools
@@ -336,7 +336,11 @@ def detail_by_aiIds_provinceIds(payload: AIbyMonthChemas, db: Session) -> list[A
         )
         .join(AiType, AIUseDistribution.ai_type_id == AiType.id)
         .where(
-            AIUseDistribution.ai_type_id == payload.ai_id and AIUseDistribution.ai_use_province_id == payload.province_id)
+            and_(
+                AIUseDistribution.ai_type_id == payload.ai_id,
+                AIUseDistribution.ai_use_province_id == payload.province_id,
+            )
+        )
         .group_by(month_expr, AiType.label)
     )
 

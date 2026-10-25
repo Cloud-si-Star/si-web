@@ -1,16 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.ai_usage import router as ai_usage_router
+from app.api.v1.chat import conversations_router, mock_router
+from app.api.v1.files import router as files_router
+from app.api.v1.menus import router as menus_router
+from app.api.v1.sales import router as sales_router
 from app.core.config import settings
+from app.core.database import Base, engine
 from app.core.logger import logger
-from app.api.v1 import data, menus, chat as chat_conversation
-from app.api.v2 import chat
 from app.utils.exceptions import register_exception_handlers
-from app.api.v1 import sales
-
-# 数据库
-from app.core.database import engine, Base
-import app.models.sales
+import app.models
 
 Base.metadata.create_all(bind=engine)
 
@@ -33,12 +33,14 @@ app.add_middleware(
 # 注册全局异常处理
 register_exception_handlers(app)
 
-# 注册路由
-app.include_router(data.router, prefix="/api/v1")
-app.include_router(menus.router, prefix="/api/v1")
-app.include_router(chat_conversation.router, prefix="/api/v1")
-app.include_router(chat.router, prefix="/api/v2")
-app.include_router(sales.router, prefix="/api/v1")
+# Register versioned resource routes.
+API_V1_PREFIX = "/api/v1"
+app.include_router(files_router, prefix=API_V1_PREFIX)
+app.include_router(ai_usage_router, prefix=API_V1_PREFIX)
+app.include_router(menus_router, prefix=API_V1_PREFIX)
+app.include_router(conversations_router, prefix=API_V1_PREFIX)
+app.include_router(mock_router, prefix=API_V1_PREFIX)
+app.include_router(sales_router, prefix=API_V1_PREFIX)
 
 
 @app.on_event("startup")

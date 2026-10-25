@@ -20,11 +20,11 @@ export interface queryFile extends query, PageParams { }
 
 export const fileApi = {
     getFiles(params: queryFile) {
-        return request.get<PageResult<FileItem>>('/v1/data/files', params)
+        return request.get<PageResult<FileItem>>('/v1/files', params)
     },
     downloadBlobFile(params: number) {
 
-        return request.get<AxiosResponse<Blob>>(`/v1/data/download/${params}`, {}, { responseType: 'blob' })
+        return request.get<AxiosResponse<Blob>>(`/v1/files/${params}/content`, {}, { responseType: 'blob' })
     }
 }
 

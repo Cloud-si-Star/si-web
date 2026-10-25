@@ -27,14 +27,14 @@ export interface ConversationItem {
 export const chatApi = {
     /* 新增会话使用 */
     addChat() {
-        return request.post<NewConversationResponse>('/v1/conversation/new')
+        return request.post<NewConversationResponse>('/v1/conversations')
     },
     /* 获取会话使用 */
     getChat() {
-        return request.get<ConversationItem[]>('/v1/conversation/list')
+        return request.get<ConversationItem[]>('/v1/conversations')
     },
     /* 获取会话中消息记录所用 */
     getMessage(conversation_id: number) {
-        return request.get<Message[]>(`/v1/conversation/${conversation_id}/messages`)
+        return request.get<Message[]>(`/v1/conversations/${conversation_id}/messages`)
     }
 }

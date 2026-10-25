@@ -1,2 +1,1 @@
-def mock():
-    return None
+"""Versioned API route modules."""

@@ -16,8 +16,14 @@ def get_menu_list(db: Session = Depends(get_db)):
 
 
 @router.get("/tree", response_model=ResponseModel[list[MenuTreeResponse]])
-def get_menu_list(db: Session = Depends(get_db)):
+def get_menu_tree(db: Session = Depends(get_db)):
     """获取递归树形菜单列表，children 包含下级菜单。"""
+    return success(data=menu_service.get_menu_tree(db))
+
+
+@router.get("/tree/children", response_model=ResponseModel[list[MenuTreeResponse]])
+def get_menu_tree_children(db: Session = Depends(get_db)):
+    """获取不包含顶级菜单节点的子树列表。"""
     return success(data=menu_service.get_menu_tree_extra_parent_zero(db))
 
 

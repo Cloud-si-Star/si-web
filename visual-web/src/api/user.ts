@@ -26,7 +26,7 @@ export type UpdateUserDTO = Partial<CreateUserDTO>
 export const userApi = {
     /** GET /users —— 获取用户列表（分页） */
     getList(params: PageParams) {
-        return request.get<PageResult<User>>('/v1/data/files')
+        return request.get<PageResult<User>>('/v1/files', params)
     },
 
     /** GET /users/:id —— 获取单个用户 */

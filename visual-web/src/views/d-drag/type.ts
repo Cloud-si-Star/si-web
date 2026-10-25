@@ -18,7 +18,6 @@ export interface tableDTO {
 export const boardApi = {
     /* 造数据 */
     faker_sql_data() {
-        return request.get('/v1/sales/batch')
+        return request.post('/v1/sales/seeds')
     }
 }
-

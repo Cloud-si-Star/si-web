@@ -553,6 +553,7 @@ onMounted(() => {
 .map-heading {
     flex: 0 0 52px;
     display: flex;
+    flex-direction: column;
     justify-content: space-between;
     align-items: center;
     position: absolute;
@@ -570,6 +571,7 @@ onMounted(() => {
     gap: 7px;
     color: #8da7ac;
     font-size: 11px;
+    margin-top: 5px;
 }
 
 .map-legend i {

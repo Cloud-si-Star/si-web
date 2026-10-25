@@ -10,13 +10,13 @@ export interface Message {
  * @param  message类型传递给后端模型数据
  * @returns 
  */
-function chatAiWorld(params: { conversation_id: number, messages: Message[] }): Promise<Response> {
-    return fetch('/api/v2/chat', {
+function chatAiWorld(conversation_id: number, messages: Message[]): Promise<Response> {
+    return fetch(`/api/v1/conversations/${conversation_id}/messages`, {
         method: 'POST',
         headers: {
             'Content-type': 'application/json'
         },
-        body: JSON.stringify(params)
+        body: JSON.stringify({ messages })
     })
 }
 
@@ -40,7 +40,7 @@ export const useChat = () => {
 
         try {
 
-            const response = await chatAiWorld({ conversation_id: conversation_id, messages: messages.value })
+            const response = await chatAiWorld(conversation_id, messages.value)
 
             if (!response.ok) throw new Error(`HTTP ERROR ${response.status}`)
 

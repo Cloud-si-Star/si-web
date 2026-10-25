@@ -6,7 +6,7 @@ export interface Message {
 }
 
 function chatAiToWorld(params: { conversation_id: number, messages: Message[] }): Promise<Response> {
-    return fetch('/api/v2/chat', {
+    return fetch('/api/v1/chat/mock', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

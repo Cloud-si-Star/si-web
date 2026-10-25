@@ -45,14 +45,14 @@ export interface UpdateMenuVisibilityDTO {
  * request 会统一剥离后端 { code, message, data } 响应外壳，调用方直接接收 data。
  */
 export const menuApi = {
-    /** GET /v1/menus：获取由后端按 parent_id 组装好的递归菜单树。 */
+    /** GET /v1/menus/tree：获取由后端按 parent_id 组装好的递归菜单树。 */
     getList() {
-        return request.get<MenuTreeNode[]>('/v1/menus')
+        return request.get<MenuTreeNode[]>('/v1/menus/tree')
     },
 
-    /** GET /v1/menus：获取由后端按 parent_id 组装好的递归菜单树。去除parent_id=0的根菜单 */
+    /** GET /v1/menus/tree/children：获取不包含顶级节点的子树。 */
     getListTree() {
-        return request.get<MenuTreeNode[]>('/v1/menus/tree')
+        return request.get<MenuTreeNode[]>('/v1/menus/tree/children')
     },
 
     /** POST /v1/menus：创建菜单，成功时返回新建的完整菜单记录。 */

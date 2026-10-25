@@ -27,15 +27,18 @@ export type UpdateTableDTO = Partial<tableDTO>
 export const tableApi = {
 
     getList(params: tableListParams) {
-        return request.get<PageResult<tableDTO>>('/v1/data/list', params)
+        return request.get<PageResult<tableDTO>>('/v1/ai/models', params)
     },
 
     update(params: UpdateTableDTO) {
-        return request.patch<Service‌Response>('/v1/data/list', params)
+        if (params.ai_id === undefined) {
+            return Promise.reject(new Error('更新 AI 模型时必须提供 ai_id'))
+        }
+        return request.patch<Service‌Response>(`/v1/ai/models/${params.ai_id}`, params)
     },
 
     patchAll() {
-        return request.post('/v1/data/batch')
+        return request.post('/v1/ai/usage/distributions')
     },
 
     upload(params: File) {
@@ -54,7 +57,7 @@ export const tableApi = {
 
         formData.append('remark', '测试文件')
 
-        return request.post<ApiResponse>('/v1/data/with-record', formData, cfg)
+        return request.post<ApiResponse>('/v1/files', formData, cfg)
     }
 
 }
