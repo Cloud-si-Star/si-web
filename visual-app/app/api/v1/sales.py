@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.scripts.seek import run_seed
@@ -32,3 +32,32 @@ def create_dws(bizdate: str, db: Session = Depends(get_db)):
         # 兜底：未预期异常
         logger.error(f"[API] 未预期异常 bizdate={bizdate}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="内部错误")
+
+
+@router.post("/api/etl/ods/run")
+def run_ods(
+        bizdate: str = Query(..., pattern=r"^\d{8}$"),
+        db: Session = Depends(get_db),
+):
+    """ODS 抽取：fact_sales → ods_sales"""
+    try:
+        rows = analysis_service.etl_ods_sales(db, bizdate)
+        return {"code": 0, "layer": "ODS", "bizdate": bizdate, "rows": rows}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"ODS 抽取失败: {e}")
+
+
+'/api/v1/sales/api/etl/dwd/run'
+
+
+@router.post("/api/etl/dwd/run")
+def run_dwd(
+        bizdate: str = Query(..., pattern=r"^\d{8}$"),
+        db: Session = Depends(get_db),
+):
+    """DWD 加工：ods_sales → dwd_sales_detail，返回质量指标"""
+    try:
+        result = analysis_service.etl_dwd_sales_detail(db, bizdate)
+        return {"code": 0, "layer": "DWD", "bizdate": bizdate, **result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DWD 加工失败: {e}")
