@@ -73,10 +73,54 @@ visual-app/
 | `POST` | `/api/v1/sales/seeds` | 生成销售种子数据 |
 | `POST` | `/api/v1/sales/daily-etl?bizdate=YYYYMMDD` | 执行指定日期的销售日汇总 ETL |
 
-上传文件的字段名为 `file`；带记录上传还接受可选的 `upload_user` 和 `remark` 表单字段。AI 对话请求体为 `{ "messages": [{ "role": "user", "content": "..." }] }`。流式接口返回 `text/event-stream`。
+上传文件的字段名为 `file`；带记录上传还接受可选的 `upload_user` 和 `remark` 表单字段。AI
+对话请求体为 `{ "messages": [{ "role": "user", "content": "..." }] }`。流式接口返回 `text/event-stream`。
+
+## 数据库事务约定
+
+`app/core/database.py` 中有两个不同的 Session 管理方式：
+
+- `get_db()` 用于 `Depends(get_db)`，负责创建和关闭 Session；它本身不统一提交或回滚。
+- `get_db_context()` 是上下文管理器，使用 `with` 调用时，代码块正常结束后提交；代码块抛出异常时回滚并继续抛出异常。
+
+需要事务控制的写接口，可以在路由的业务边界使用 `get_db_context()`，并把上下文中的同一个 `db` 传给 service。service
+负责业务操作，不自行提交或吞掉异常。示例：
+
+```python
+# app/services/record.py
+def create_record(db: Session, payload: RecordCreate) -> Record:
+    record = Record(**payload.model_dump())
+    db.add(record)
+    db.flush()  # 在当前事务内执行 SQL；不提交事务
+    return record
+
+
+# app/api/v1/records.py
+@router.post("/records")
+def create_record_route(payload: RecordCreate):
+    with get_db_context() as db:
+        record = record_service.create_record(db, payload)
+        result = RecordResponse.model_validate(record)
+
+    # 离开 with 后事务已提交；发生异常则已回滚并由异常处理器继续处理
+    return success(data=result)
+```
+
+上例中的 `Record`、`RecordCreate` 和 `RecordResponse` 代表项目对应的 ORM 模型及 Schema。`db.flush()` 可在不提交事务的情况下执行
+SQL 并取得数据库生成的主键；如果 service 不需要这些值，也可以不调用。先在事务块内构造响应 Schema，避免提交并关闭 Session
+后再读取过期的 ORM 属性。
+
+不要在这个模式下同时让 service 调用 `db.commit()`；否则 service
+提前提交后，外层事务无法回滚已经提交的数据。需要把多个数据库写操作作为一个整体时，让它们共用同一个 `db`
+并处于同一个事务块中。`get_db_context()` 只控制数据库事务，不能回滚文件写入、外部 API 调用等非数据库副作用。
+
+现有使用 `Depends(get_db)` 的接口不会自动获得上述事务行为；迁移时需要明确选择事务边界，并移除相应 service
+或路由内重复的提交/回滚逻辑。不要在同一条操作链上混用多种事务所有权。
 
 ## 数据和运行说明
 
 - 数据库表由模型元数据初始化；正式环境的 schema 变更应使用受控迁移流程，而不是依赖应用启动时自动创建。
 - `data/` 中可放样例 CSV 和上传文件；不应将用户上传内容或密钥写进源代码。
 - 演示数据生成和数据库维护脚本在 `app/scripts/`，请查看对应脚本说明后再执行；重复运行可能产生重复数据或执行数据修改。
+
+python -m app.scripts.use

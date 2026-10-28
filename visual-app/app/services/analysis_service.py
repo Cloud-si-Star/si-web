@@ -40,10 +40,35 @@ def run_ods_sales(db: Session, bizdate: str) -> int:
     Returns 插入多少条
     -------
     """
-    pass
+    validate_bizdate(bizdate)
+    logger.info(f"[ETL] 开始 ods_sales bizdate={bizdate}")
+    delete_sql = text("DELETE FROM ods_sales WHERE dt= :bizdate")
+
+    insert_sql = text("""
+        INSERT INTO ods_sales (id, date_id, product_id, region_id, quantity, amount, cost, dt, src_table)
+        SELECT 
+            f.id, f.date_id, f.product_id, f.region_id,
+            f.quantity, f.amount, f.cost,
+            f.dt,
+            'fact_sales' as src_table
+        FROM fact_sales f 
+        WHERE f.dt=:bizdate
+    """)
+    try:
+
+        db.execute(delete_sql, {"bizdate": bizdate})
+        inserted = db.execute(insert_sql, {"bizdate": bizdate}).rowcount
+        db.commit()
+        logger.info(f"[ods_sales] bizdate={bizdate} 抽{inserted}行")
+        return inserted
+    except Exception:
+
+        db.rollback()
+        logger.exception(f"[ods_sales] bizdate={bizdate} 失败已回滚")
+        raise
 
 
-def run_dwd_sales_detail(db: Session, bizdate: str) -> int:
+def run_dwd_sales_detail(db: Session, bizdate: str) -> dict:
     """
     ----------
     db 数据库会话
@@ -52,10 +77,59 @@ def run_dwd_sales_detail(db: Session, bizdate: str) -> int:
     Returns 插入多少条
     -------
     """
-    pass
+    delete_sql = text("DELETE FROM dwd_sales_detail WHERE dt = :bizdate")
+
+    insert_sql = text("""
+        INSERT INTO dwd_sales_detail  (sale_id, sale_date, year, month, weekday, is_weekend,
+             product_id, product_name, category,
+             region, province, city,
+             quantity, amount, cost, profit, dt)
+        SELECT
+            o.id                      AS sale_id,
+            d.date                    AS sale_date,
+            d.year, d.month, d.weekday, d.is_weekend,     -- 来自 dim_date
+            o.product_id,
+            p.product_name, p.category,                    -- 来自 dim_product
+            r.region, r.province, r.city,                  -- 来自 dim_region
+            o.quantity, o.amount, o.cost,
+            o.amount - o.cost         AS profit,           -- 派生字段
+            o.dt
+        FROM ods_sales o
+        JOIN dim_date    d ON o.date_id    = d.date_id
+        JOIN dim_product p ON o.product_id = p.product_id
+        JOIN dim_region  r ON o.region_id  = r.region_id
+        WHERE o.dt = :bizdate
+          AND o.amount >= 0        -- 清洗：过滤异常金额（防御性）
+    """)
+
+    try:
+        # 先数 ODS 有多少行，用于对比
+        ods_count = db.execute(
+            text("SELECT COUNT(*) FROM ods_sales WHERE dt = :bizdate"),
+            {"bizdate": bizdate},
+        ).scalar() or 0
+        db.execute(delete_sql, {"bizdate": bizdate})
+        inserted = db.execute(insert_sql, {"bizdate": bizdate}).rowcount
+        db.commit()
+
+        if inserted > ods_count:
+            logger.warning(
+                f"[dwd_sales_detail] 行数异常膨胀: ods={ods_count}, dwd={inserted}"
+            )
+
+        dropped = ods_count - inserted
+        logger.info(
+            f"[dwd_sales_detail] bizdate={bizdate} ods={ods_count} "
+            f"dwd={inserted} 清洗掉={dropped}"
+        )
+        return {'bizDate': bizdate, "insertTotal": inserted, "actCount": ods_count, "dropCount": dropped}
+
+    except Exception:
+        logger.exception(f"[dwd_sales_detail] bizdate={bizdate} 失败已回滚")
+        raise
 
 
-def run_dws_sales_daily(db: Session) -> int:
+def run_dws_sales_daily(db: Session, bizdate: str) -> dict:
     """
     ----------
     db 数据库会话
@@ -64,10 +138,35 @@ def run_dws_sales_daily(db: Session) -> int:
     Returns 插入多少条
     -------
     """
-    pass
+    delete_sql = text("DELETE FROM dws_sales_daily WHERE dt=:bizdate")
+    insert_sql = text("""
+            INSERT INTO dws_sales_daily
+                (dt, category, region, order_cnt, total_qty, total_amount, total_profit)
+            SELECT
+                :bizdate           AS dt,
+                category,          -- 直接取，不用 JOIN dim_product
+                region,            -- 直接取，不用 JOIN dim_region
+                COUNT(*)           AS order_cnt,
+                SUM(quantity)      AS total_qty,
+                SUM(amount)        AS total_amount,
+                SUM(profit)        AS total_profit   -- DWD 已算好，直接 SUM
+            FROM dwd_sales_detail
+            WHERE dt = :bizdate
+            GROUP BY category, region
+        """)
+    try:
+        db.execute(delete_sql, {"bizdate": bizdate})
+        insertd = db.execute(insert_sql, {"bizdate": bizdate}).rowcount
+        db.commit()
+        logger.info(f"[dws_sales_daily] bizdate={bizdate} 插{insertd}行")
+        return {"bizDate": bizdate, "insertTotal": insertd}
+    except:
+        db.rollback()
+        logger.exception(f"[dws_sales_daily] bizdate={bizdate} 失败已回滚")
+        raise
 
 
-def run_dws_sales_daily_category() -> int:
+def run_dws_sales_daily_category(db: Session, bizdate: str) -> dict:
     """
     ----------
     db 数据库会话
@@ -76,7 +175,31 @@ def run_dws_sales_daily_category() -> int:
     Returns 插入多少条
     -------
     """
-    pass
+    delete_sql = text("DELETE FROM dws_sales_daily_category WHERE dt=:bizdate")
+    insert_sql = text("""
+     INSERT INTO dws_sales_daily_category
+        (dt, category, order_cnt, total_qty, total_amount, total_profit)
+     SELECT
+        :bizdate          AS dt,
+        category,
+        COUNT(*)          AS order_cnt,
+        SUM(quantity)     AS total_qty,
+        SUM(amount)       AS total_amount,
+        SUM(amount-cost)  AS total_profit
+     FROM  dwd_sales_detail
+     WHERE dt=:bizdate
+     GROUP BY category
+    """)
+    try:
+        db.execute(delete_sql, {"bizdate": bizdate})
+        inserted = db.execute(insert_sql, {"bizdate": bizdate}).rowcount
+        db.commit()
+        logger.info(f"[dws_sales_daily_category] bizdate={bizdate} 插入{inserted}行")
+        return {'bizDate': bizdate, 'insertTotal': inserted}
+    except Exception:
+        db.rollback()
+        logger.exception(f"[dws_sales_daily] bizdate={bizdate} 失败已回滚")
+        raise
 
 
 def run_dws_sales_daily_monthly_region() -> int:
@@ -91,7 +214,7 @@ def run_dws_sales_daily_monthly_region() -> int:
     pass
 
 
-def run_dws_sales_daily(db: Session, bizdate: str) -> int:
+def run_dws_sales_daily1(db: Session, bizdate: str) -> int:
     """
     执行 dws_sales_daily 的日汇总 ETL。
     幂等：先 DELETE 目标分区，再 INSERT。

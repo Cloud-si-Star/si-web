@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.scripts.seek import run_seed
 from app.services import analysis_service
-from app.schemas.response import success
+from app.schemas.response import success, ResponseModel
+from app.schemas.etl import BizResponse
 from app.core.logger import logger
 from datetime import date
 
@@ -14,6 +15,68 @@ router = APIRouter(prefix="/sales", tags=["sales"])
 def create_seed(db: Session = Depends(get_db)):
     run_seed(db, start=date(2025, 1, 1), end=date(2026, 10, 10))
     return success(message="销售数据生成完成")
+
+
+"""
+route_run_ods_sales
+route_run_dwd_sales_detail
+route_run_dws_sales_daily
+route_run_dws_sales_daily_category
+route_run_dws_sales_monthly_region
+
+ods-sales
+dwd-sales-detail
+dws-sales-daily
+dws-sales-daily-category
+dws-sales-monthly-region
+
+"""
+
+
+@router.post("/ods-sales", summary="执行贴源层数据", response_model=ResponseModel[BizResponse])
+def route_run_ods_sales(
+        bizdate: str = Query(..., pattern=r"^\d{8}$"),
+        db: Session = Depends(get_db),
+):
+    rows = analysis_service.run_ods_sales(db, bizdate)
+    return success(data={'bizDate': bizdate, 'insertTotal': rows}, message="执行贴源层数据成功")
+
+
+@router.post("/dwd-sales-detail", summary="执行数据仓库明细层", response_model=ResponseModel[BizResponse])
+def route_run_dwd_sales_detail(
+        bizdate: str = Query(..., pattern=r"^\d{8}$"),
+        db: Session = Depends(get_db),
+):
+    rows = analysis_service.run_dwd_sales_detail(db, bizdate)
+    return success(data=BizResponse(**rows))
+
+
+@router.post("/dws-sales-daily", summary="执行数据汇总层-日销量", response_model=ResponseModel[BizResponse])
+def route_run_dws_sales_daily(
+        bizdate: str = Query(..., pattern=r"^\d{8}$"),
+        db: Session = Depends(get_db),
+):
+    rows = analysis_service.run_dws_sales_daily(db, bizdate)
+    return success(data=BizResponse(**rows))
+
+
+@router.post("/dws-sales-daily-category", summary="执行数据汇总层-日销量x大类",
+             response_model=ResponseModel[BizResponse])
+def route_run_dws_sales_daily_category(
+        bizdate: str = Query(..., pattern=r"^\d{8}$"),
+        db: Session = Depends(get_db),
+):
+    rows = analysis_service.run_dws_sales_daily_category(db, bizdate)
+    return success(data=BizResponse(**rows))
+
+
+@router.post("/dws-sales-monthly-region", summary="执行数据汇总层-月份x大区")
+def route_run_dws_sales_monthly_region(
+        bizdate: str = Query(..., pattern=r"^\d{8}$"),
+        db: Session = Depends(get_db),
+):
+    rows = analysis_service.run_dws_sales_daily_monthly_region(db, bizdate)
+    return success(data={'bizDate': bizdate, 'insertTotal': rows})
 
 
 @router.post("/daily-etl", summary="执行日销售汇总")
