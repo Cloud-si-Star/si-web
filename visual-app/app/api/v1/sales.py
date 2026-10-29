@@ -6,9 +6,10 @@ from app.services import analysis_service
 from app.schemas.response import success, ResponseModel
 from app.schemas.etl import BizResponse
 from app.core.logger import logger
-from datetime import date
+from datetime import date, datetime, timedelta
 
 router = APIRouter(prefix="/sales", tags=["sales"])
+MAX_ODS_RANGE_DAYS = 31
 
 
 @router.post("/seeds", summary="批量生成销售数据")
@@ -42,6 +43,67 @@ def route_run_ods_sales(
     return success(data={'bizDate': bizdate, 'insertTotal': rows}, message="执行贴源层数据成功")
 
 
+@router.post("/ods-sales/range", summary="按日期范围逐日执行贴源层数据")
+def route_run_ods_sales_range(
+        start_date: str = Query(..., alias="startDate", pattern=r"^\d{8}$"),
+        end_date: str = Query(..., alias="endDate", pattern=r"^\d{8}$"),
+        db: Session = Depends(get_db),
+):
+    """Run ODS extraction once per date in an inclusive, limited date range."""
+    try:
+        start = datetime.strptime(start_date, "%Y%m%d").date()
+        end = datetime.strptime(end_date, "%Y%m%d").date()
+    except ValueError as error:
+        raise HTTPException(
+            status_code=422,
+            detail="startDate 和 endDate 必须是有效的 YYYYMMDD 日期",
+        ) from error
+
+    if end < start:
+        raise HTTPException(status_code=422, detail="endDate 不能早于 startDate")
+
+    total_days = (end - start).days + 1
+    if total_days > MAX_ODS_RANGE_DAYS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"单次最多处理 {MAX_ODS_RANGE_DAYS} 天",
+        )
+
+    results = []
+    current_date = start
+    while current_date <= end:
+        bizdate = current_date.strftime("%Y%m%d")
+        try:
+            inserted = analysis_service.run_ods_sales(db, bizdate)
+            results.append({
+                "bizDate": bizdate,
+                "status": "success",
+                "insertTotal": inserted,
+                "message": "执行成功",
+            })
+        except Exception:
+            logger.exception("[ETL] ods_sales 范围处理失败 bizdate=%s", bizdate)
+            results.append({
+                "bizDate": bizdate,
+                "status": "failed",
+                "insertTotal": 0,
+                "message": "处理失败，请查看服务日志",
+            })
+        current_date += timedelta(days=1)
+
+    success_days = sum(result["status"] == "success" for result in results)
+    failed_days = total_days - success_days
+    return success(data={
+        "startDate": start_date,
+        "endDate": end_date,
+        "totalDays": total_days,
+        "successDays": success_days,
+        "failedDays": failed_days,
+        "totalInserted": sum(result["insertTotal"] for result in results),
+        "results": results,
+    }, message="ODS 范围批处理完成")
+
+
 @router.post("/dwd-sales-detail", summary="执行数据仓库明细层", response_model=ResponseModel[BizResponse])
 def route_run_dwd_sales_detail(
         bizdate: str = Query(..., pattern=r"^\d{8}$"),
@@ -70,57 +132,10 @@ def route_run_dws_sales_daily_category(
     return success(data=BizResponse(**rows))
 
 
-@router.post("/dws-sales-monthly-region", summary="执行数据汇总层-月份x大区")
+@router.post("/dws-sales-monthly-region", summary="执行数据汇总层-月份x大区", response_model=ResponseModel[BizResponse])
 def route_run_dws_sales_monthly_region(
-        bizdate: str = Query(..., pattern=r"^\d{8}$"),
+        bizdate: str = Query(..., pattern=r"^\d{6}$"),
         db: Session = Depends(get_db),
 ):
     rows = analysis_service.run_dws_sales_daily_monthly_region(db, bizdate)
-    return success(data={'bizDate': bizdate, 'insertTotal': rows})
-
-
-@router.post("/daily-etl", summary="执行日销售汇总")
-def create_dws(bizdate: str, db: Session = Depends(get_db)):
-    logger.info(f"[API] 收到 ETL 请求 bizdate={bizdate}")
-    try:
-        inserted = analysis_service.run_dws_sales_daily(db, bizdate)
-        logger.info(f"[API] ETL 成功 bizdate={bizdate}, inserted={inserted}")
-        db.commit()
-        return success(data={"inserted": inserted})
-    except ValueError as e:
-        logger.warning(f"[API] 参数非法 bizdate={bizdate}: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        db.rollback()
-        # 兜底：未预期异常
-        logger.error(f"[API] 未预期异常 bizdate={bizdate}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="内部错误")
-
-
-@router.post("/api/etl/ods/run")
-def run_ods(
-        bizdate: str = Query(..., pattern=r"^\d{8}$"),
-        db: Session = Depends(get_db),
-):
-    """ODS 抽取：fact_sales → ods_sales"""
-    try:
-        rows = analysis_service.etl_ods_sales(db, bizdate)
-        return {"code": 0, "layer": "ODS", "bizdate": bizdate, "rows": rows}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"ODS 抽取失败: {e}")
-
-
-'/api/v1/sales/api/etl/dwd/run'
-
-
-@router.post("/api/etl/dwd/run")
-def run_dwd(
-        bizdate: str = Query(..., pattern=r"^\d{8}$"),
-        db: Session = Depends(get_db),
-):
-    """DWD 加工：ods_sales → dwd_sales_detail，返回质量指标"""
-    try:
-        result = analysis_service.etl_dwd_sales_detail(db, bizdate)
-        return {"code": 0, "layer": "DWD", "bizdate": bizdate, **result}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"DWD 加工失败: {e}")
+    return success(data=BizResponse(**rows))

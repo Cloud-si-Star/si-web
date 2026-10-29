@@ -71,7 +71,12 @@ visual-app/
 | `DELETE` | `/api/v1/conversations/{conversation_id}` | 删除会话及其消息 |
 | `POST` | `/api/v1/chat/mock` | 不保存会话的 SSE 模型对话 |
 | `POST` | `/api/v1/sales/seeds` | 生成销售种子数据 |
-| `POST` | `/api/v1/sales/daily-etl?bizdate=YYYYMMDD` | 执行指定日期的销售日汇总 ETL |
+| `POST` | `/api/v1/sales/ods-sales?bizdate=YYYYMMDD` | 执行单日 ODS 抽取 |
+| `POST` | `/api/v1/sales/ods-sales/range?startDate=YYYYMMDD&endDate=YYYYMMDD` | 按日期范围逐日执行 ODS 抽取，最多 31 天并返回逐日结果 |
+| `POST` | `/api/v1/sales/dwd-sales-detail?bizdate=YYYYMMDD` | 执行单日 DWD 明细加工 |
+| `POST` | `/api/v1/sales/dws-sales-daily?bizdate=YYYYMMDD` | 执行单日日销量汇总 |
+| `POST` | `/api/v1/sales/dws-sales-daily-category?bizdate=YYYYMMDD` | 执行单日日品类汇总 |
+| `POST` | `/api/v1/sales/dws-sales-monthly-region?bizdate=YYYYMM` | 执行单月区域汇总 |
 
 上传文件的字段名为 `file`；带记录上传还接受可选的 `upload_user` 和 `remark` 表单字段。AI
 对话请求体为 `{ "messages": [{ "role": "user", "content": "..." }] }`。流式接口返回 `text/event-stream`。
