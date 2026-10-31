@@ -4,11 +4,11 @@
             <div>
                 <p class="eyebrow">SALES DATA PIPELINE</p>
                 <h1>销售数据处理</h1>
-                <p class="page-description">按业务日期执行销售数据分层处理，并查看每次执行结果。</p>
+                <p class="page-description">保留单日处理，并支持选择月份执行整月数据入库。</p>
                 <div class="section-heading">
                     <div>
                         <h2>处理流程</h2>
-                        <p>日期按接口要求自动校验：日任务使用 YYYYMMDD，月度任务使用 YYYYMM。</p>
+                        <p>单日任务使用 YYYYMMDD；按月任务选择 YYYY-MM，后端自动处理当月全部日期。</p>
                     </div>
                     <el-tag type="info" effect="plain">{{ tasks.length }} 项操作</el-tag>
                 </div>
@@ -40,48 +40,52 @@
                     </template>
                 </el-table-column>
                 <el-table-column prop="description" label="说明" min-width="260" show-overflow-tooltip />
-                <el-table-column label="业务日期" width="205" align="center">
+                <el-table-column label="业务日期" width="190" align="center">
                     <template #default="{ row }">
                         <template v-if="row.dateFormat === 'day'">
                             <el-date-picker v-model="dailyBizDate" type="date" format="YYYY-MM-DD"
-                                value-format="YYYYMMDD" :clearable="false" :disabled="runningKeys.has(row.key)"
+                                value-format="YYYYMMDD" :clearable="false" :disabled="runningKeys.size > 0"
                                 placeholder="选择业务日期" />
                         </template>
                         <template v-else-if="row.dateFormat === 'month'">
-                            <el-date-picker v-model="monthlyBizDate" type="month" format="YYYY-MM" value-format="YYYYMM"
-                                :clearable="false" :disabled="runningKeys.has(row.key)" placeholder="选择业务月份" />
+                            <el-date-picker v-model="monthlyBizDate" type="month" format="YYYY-MM"
+                                value-format="YYYYMM" :clearable="false" :disabled="runningKeys.size > 0"
+                                placeholder="选择月份" />
                         </template>
                         <span v-else class="not-required">无需选择</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="最近执行" min-width="220">
                     <template #default="{ row }">
-                        <div v-if="results[row.key]" class="result-cell">
-                            <el-tag :type="resultTagType(results[row.key]!.status)" size="small" effect="light">
-                                {{ resultStatusLabel(results[row.key]!.status) }}
+                        <div v-if="results[row.rowKey]" class="result-cell">
+                            <el-tag :type="resultTagType(results[row.rowKey]!.status)" size="small" effect="light">
+                                {{ resultStatusLabel(results[row.rowKey]!.status) }}
                             </el-tag>
-                            <span class="result-message" :title="results[row.key]!.message">
-                                {{ results[row.key]!.message }}
+                            <span class="result-message" :title="results[row.rowKey]!.message">
+                                {{ results[row.rowKey]!.message }}
                             </span>
-                            <small>{{ results[row.key]!.finishedAt }}</small>
+                            <small>{{ results[row.rowKey]!.finishedAt }}</small>
                         </div>
                         <span v-else class="no-result">尚未执行</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="145" fixed="right" align="center">
+                <el-table-column label="操作" width="160" fixed="right" align="center">
                     <template #default="{ row }">
-                        <el-button :type="row.key === 'seed' ? 'warning' : 'primary'"
-                            :icon="row.key === 'seed' ? Warning : VideoPlay" :loading="runningKeys.has(row.key)"
-                            :disabled="runningKeys.size > 0" @click="handleRun(row.key)">
-                            {{ runningKeys.has(row.key) ? '执行中' : row.buttonLabel }}
-                        </el-button>
+                        <div class="task-actions">
+                            <el-button :type="row.key === 'seed' ? 'warning' : row.executionMode === 'monthly' ? 'success' : 'primary'"
+                                :icon="row.key === 'seed' ? Warning : VideoPlay"
+                                :loading="runningKeys.has(row.rowKey)" :disabled="runningKeys.size > 0"
+                                @click="handleRun(row.rowKey)">
+                                {{ runningKeys.has(row.rowKey) ? '执行中' : row.buttonLabel }}
+                            </el-button>
+                        </div>
                     </template>
                 </el-table-column>
             </el-table>
 
             <footer class="pipeline-footer">
                 <span class="footer-dot"></span>
-                执行结果仅保存在当前页面；后端当前以同步方式处理，接口返回后显示本次统计结果。
+                执行结果仅保存在当前页面；月度任务按自然月天数执行，并在全部成功后统一提交。
             </footer>
         </section>
 
@@ -108,7 +112,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import {
-    ElAlert,
     ElButton,
     ElDatePicker,
     ElDialog,
@@ -129,7 +132,15 @@ import {
     Warning,
     WarningFilled,
 } from '@element-plus/icons-vue'
-import { boardApi, type SalesTask, type TaskResult, type TaskRunStatus } from './type'
+import {
+    boardApi,
+    type MonthlySalesTaskKey,
+    type SalesEtlResult,
+    type SalesMonthlyEtlResult,
+    type SalesTask,
+    type TaskResult,
+    type TaskRunStatus,
+} from './type'
 
 defineOptions({ name: 'SalesDataPipeline' })
 
@@ -142,9 +153,11 @@ const runningKeys = ref(new Set<string>())
 const results = ref<Record<string, TaskResult>>({})
 const seedConfirmVisible = ref(false)
 
-const tasks: SalesTask[] = [
+const taskDefinitions: SalesTask[] = [
     {
         key: 'seed',
+        rowKey: 'seed',
+        executionMode: 'single',
         name: '生成销售种子数据',
         layer: '演示数据初始化',
         description: '生成日期、区域、商品维度及销售事实数据',
@@ -155,6 +168,8 @@ const tasks: SalesTask[] = [
     },
     {
         key: 'ods',
+        rowKey: 'ods',
+        executionMode: 'single',
         name: '贴源层数据抽取',
         layer: 'ODS',
         description: '从销售事实数据抽取指定日期的贴源层数据',
@@ -165,6 +180,8 @@ const tasks: SalesTask[] = [
     },
     {
         key: 'dwd',
+        rowKey: 'dwd',
+        executionMode: 'single',
         name: '数据仓库明细加工',
         layer: 'DWD',
         description: '加工指定日期的销售明细及数据质量信息',
@@ -175,6 +192,8 @@ const tasks: SalesTask[] = [
     },
     {
         key: 'daily',
+        rowKey: 'daily',
+        executionMode: 'single',
         name: '日销量汇总',
         layer: 'DWS · 日',
         description: '按业务日期汇总销售指标',
@@ -185,6 +204,8 @@ const tasks: SalesTask[] = [
     },
     {
         key: 'daily-category',
+        rowKey: 'daily-category',
+        executionMode: 'single',
         name: '日销量品类汇总',
         layer: 'DWS · 日 × 品类',
         description: '按业务日期及商品大类汇总销售指标',
@@ -195,6 +216,8 @@ const tasks: SalesTask[] = [
     },
     {
         key: 'monthly-region',
+        rowKey: 'monthly-region',
+        executionMode: 'single',
         name: '月度区域汇总',
         layer: 'DWS · 月 × 大区',
         description: '按月份汇总各大区销售指标',
@@ -205,8 +228,28 @@ const tasks: SalesTask[] = [
     },
 ]
 
-async function handleRun(taskKey: string): Promise<void> {
-    const task = tasks.find((item) => item.key === taskKey)
+const tasks = taskDefinitions.flatMap((task) => {
+    if (task.dateFormat !== 'day' || !isMonthlyTaskKey(task.key)) {
+        return [task]
+    }
+
+    return [
+        task,
+        {
+            ...task,
+            rowKey: `monthly-${task.rowKey}`,
+            executionMode: 'monthly' as const,
+            name: `${task.name}（按月）`,
+            layer: `${task.layer} · 月`,
+            description: `按所选月份逐日执行${task.name}，当月全部成功后统一提交`,
+            dateFormat: 'month' as const,
+            buttonLabel: '按月执行',
+        },
+    ]
+})
+
+async function handleRun(taskRowKey: string): Promise<void> {
+    const task = tasks.find((item) => item.rowKey === taskRowKey)
     if (!task) {
         ElMessage.error('未找到销售数据处理任务')
         return
@@ -230,11 +273,16 @@ async function confirmSeed(): Promise<void> {
     await runTask(seedTask)
 }
 
+function isMonthlyTaskKey(key: SalesTask['key']): key is MonthlySalesTaskKey {
+    return key === 'ods' || key === 'dwd' || key === 'daily' || key === 'daily-category'
+}
+
 async function runTask(task: SalesTask): Promise<void> {
-    runningKeys.value = new Set(runningKeys.value).add(task.key)
+    const runKey = task.rowKey
+    runningKeys.value = new Set(runningKeys.value).add(runKey)
     results.value = {
         ...results.value,
-        [task.key]: {
+        [task.rowKey]: {
             status: 'running',
             message: '请求已发送，等待后端处理完成',
             finishedAt: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
@@ -242,28 +290,38 @@ async function runTask(task: SalesTask): Promise<void> {
     }
 
     try {
-        const response = await boardApi.run(task.key, {
-            dailyBizDate: dailyBizDate.value,
-            monthlyBizDate: monthlyBizDate.value,
-        })
+        let response: SalesEtlResult | SalesMonthlyEtlResult | null
+        if (task.executionMode === 'monthly') {
+            if (!isMonthlyTaskKey(task.key)) {
+                throw new Error('当前任务不支持按月执行')
+            }
+            response = await boardApi.runMonthly(task.key, monthlyBizDate.value)
+        } else {
+            response = await boardApi.run(task.key, {
+                dailyBizDate: dailyBizDate.value,
+                monthlyBizDate: monthlyBizDate.value,
+            })
+        }
         let message: string
         if (task.key === 'seed') {
             message = '种子数据生成接口执行成功'
+        } else if (response && 'bizMonth' in response) {
+            message = `业务月份 ${response.bizMonth}，处理 ${response.totalDays} 天，插入 ${response.insertTotal} 条，丢弃 ${response.dropCount} 条`
         } else if (response) {
             message = `业务日期 ${response.bizDate}，插入 ${response.insertTotal} 条，丢弃 ${response.dropCount} 条`
         } else {
             throw new Error('后端未返回处理统计结果')
         }
 
-        setResult(task.key, 'success', message)
+        setResult(task.rowKey, 'success', message)
         ElMessage.success(`${task.name}执行成功`)
     } catch (error) {
         const message = error instanceof Error ? error.message : `${task.name}执行失败`
-        setResult(task.key, 'failed', message)
+        setResult(task.rowKey, 'failed', message)
         ElMessage.error(message)
     } finally {
         const nextRunningKeys = new Set(runningKeys.value)
-        nextRunningKeys.delete(task.key)
+        nextRunningKeys.delete(runKey)
         runningKeys.value = nextRunningKeys
     }
 }
@@ -382,6 +440,15 @@ function resultTagType(status: TaskRunStatus): 'warning' | 'success' | 'danger' 
 
 .task-table {
     width: 100%;
+}
+
+.task-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.task-actions :deep(.el-button) {
+    width: 120px;
 }
 
 .task-title {

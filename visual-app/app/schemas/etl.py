@@ -12,3 +12,19 @@ class BizResponse(CamelModel):
     insertTotal: int = 0
     dropCount: int = 0
     actConut: int = 0
+
+
+class MonthlyBizDayResponse(CamelModel):
+    biz_date: str
+    insert_total: int = 0
+    drop_count: int = 0
+
+
+class MonthlyBizResponse(CamelModel):
+    biz_month: str
+    start_date: str
+    end_date: str
+    total_days: int
+    insert_total: int = 0
+    drop_count: int = 0
+    results: list[MonthlyBizDayResponse]

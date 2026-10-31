@@ -72,11 +72,15 @@ visual-app/
 | `POST` | `/api/v1/chat/mock` | 不保存会话的 SSE 模型对话 |
 | `POST` | `/api/v1/sales/seeds` | 生成销售种子数据 |
 | `POST` | `/api/v1/sales/ods-sales?bizdate=YYYYMMDD` | 执行单日 ODS 抽取 |
+| `POST` | `/api/v1/sales/ods-sales/monthly?bizMonth=YYYYMM` | 按自然月执行 ODS 抽取，整月使用单个事务 |
 | `POST` | `/api/v1/sales/ods-sales/range?startDate=YYYYMMDD&endDate=YYYYMMDD` | 按日期范围逐日执行 ODS 抽取，最多 31 天并返回逐日结果 |
 | `POST` | `/api/v1/sales/dwd-sales-detail?bizdate=YYYYMMDD` | 执行单日 DWD 明细加工 |
+| `POST` | `/api/v1/sales/dwd-sales-detail/monthly?bizMonth=YYYYMM` | 按自然月执行 DWD 明细加工，整月使用单个事务 |
 | `POST` | `/api/v1/sales/dws-sales-daily?bizdate=YYYYMMDD` | 执行单日日销量汇总 |
+| `POST` | `/api/v1/sales/dws-sales-daily/monthly?bizMonth=YYYYMM` | 按自然月执行日销量汇总，整月使用单个事务 |
 | `POST` | `/api/v1/sales/dws-sales-daily-category?bizdate=YYYYMMDD` | 执行单日日品类汇总 |
-| `POST` | `/api/v1/sales/dws-sales-monthly-region?bizdate=YYYYMM` | 执行单月区域汇总 |
+| `POST` | `/api/v1/sales/dws-sales-daily-category/monthly?bizMonth=YYYYMM` | 按自然月执行日品类汇总，整月使用单个事务 |
+| `POST` | `/api/v1/sales/dws-sales-monthly-region?bizdate=YYYYMM` | 执行单月区域汇总（接口本身按整月汇总） |
 
 上传文件的字段名为 `file`；带记录上传还接受可选的 `upload_user` 和 `remark` 表单字段。AI
 对话请求体为 `{ "messages": [{ "role": "user", "content": "..." }] }`。流式接口返回 `text/event-stream`。

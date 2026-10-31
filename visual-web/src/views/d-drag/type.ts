@@ -2,11 +2,14 @@ import { request } from '@/utils/request'
 import type { Component } from 'vue'
 
 export type SalesTaskKey = 'seed' | 'ods' | 'dwd' | 'daily' | 'daily-category' | 'monthly-region'
+export type MonthlySalesTaskKey = Exclude<SalesTaskKey, 'seed' | 'monthly-region'>
 export type TaskRunStatus = 'running' | 'success' | 'failed'
 export type TaskDateFormat = 'none' | 'day' | 'month'
 
 export interface SalesTask {
     key: SalesTaskKey
+    rowKey: string
+    executionMode: 'single' | 'monthly'
     name: string
     layer: string
     description: string
@@ -28,6 +31,20 @@ export interface SalesEtlResult {
     actConut: number
 }
 
+export interface SalesMonthlyEtlResult {
+    bizMonth: string
+    startDate: string
+    endDate: string
+    totalDays: number
+    insertTotal: number
+    dropCount: number
+    results: Array<{
+        bizDate: string
+        insertTotal: number
+        dropCount: number
+    }>
+}
+
 export interface TaskResult {
     status: TaskRunStatus
     message: string
@@ -36,6 +53,7 @@ export interface TaskResult {
 
 const SALES_API = '/v1/sales'
 const SALES_REQUEST_TIMEOUT = 10 * 60 * 1000
+const SALES_MONTHLY_REQUEST_TIMEOUT = 60 * 60 * 1000
 
 function assertBizDate(value: string): void {
     if (!/^\d{8}$/.test(value)) {
@@ -104,6 +122,21 @@ export const boardApi = {
         return request.post<SalesEtlResult>(`${SALES_API}/dws-sales-monthly-region`, undefined, {
             params: { bizdate },
             timeout: SALES_REQUEST_TIMEOUT,
+        })
+    },
+
+    /** POST /v1/sales/{task}/monthly?bizMonth=YYYYMM：按自然月执行日级 ETL。 */
+    runMonthly(task: MonthlySalesTaskKey, bizMonth: string): Promise<SalesMonthlyEtlResult> {
+        assertBizMonth(bizMonth)
+        const paths: Record<MonthlySalesTaskKey, string> = {
+            ods: 'ods-sales/monthly',
+            dwd: 'dwd-sales-detail/monthly',
+            daily: 'dws-sales-daily/monthly',
+            'daily-category': 'dws-sales-daily-category/monthly',
+        }
+        return request.post<SalesMonthlyEtlResult>(`${SALES_API}/${paths[task]}`, undefined, {
+            params: { bizMonth },
+            timeout: SALES_MONTHLY_REQUEST_TIMEOUT,
         })
     },
 
